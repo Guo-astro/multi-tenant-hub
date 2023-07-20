@@ -1,81 +1,42 @@
-# Turborepo starter
+# MultiTenantHub
+[Achieving Operational Success of SaaS Solutions](https://aws.amazon.com/blogs/apn/achieving-operational-success-of-saas-solutions/)
+## Cheat Commands
 
-This is an official starter Turborepo.
+- `pnpx cdk init --language typescript`
+- `pnpm up -r --workspace`
+- ` brew install aws/tap/aws-sam-cli`
+- `sam local start-lambda -t ./cdk.out/SaasProviderStack.template.json`
+- `sam local invoke DynamoLambdaHandlerFB6EB814 --no-event -t ./cdk.out/SaasProviderStack.template.json`
+- `pnpx aws-sdk-js-codemod -t v2-to-v3 infrastructures/saas_provider/src/services/index.ts`
 
-## Using this example
-
-Run the following command:
-
-```sh
-npx create-turbo@latest
+```export ACCOUNT_ID=$(aws sts get-caller-identity --output text --query Account) | echo $ACCOUNT_ID
+npx cdk bootstrap \
+  --cloudformation-execution-policies arn\:aws\:iam::aws\:policy/AdministratorAccess \
+  aws://$ACCOUNT_ID/us-east-1 \
+  aws://$ACCOUNT_ID/us-east-2
 ```
 
-## What's inside?
+## Migration
 
-This Turborepo includes the following packages/apps:
+- Cognito: https://github.com/Collaborne/migrate-cognito-user-pool-lambda/blob/master/README.md
+  https://cloudar.be/awsblog/options-for-migrating-between-amazon-cognito-user-pools/
 
-### Apps and Packages
+## TroubleShooting
 
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `ui`: a stub React component library shared by both `web` and `docs` applications
-- `eslint-config-custom`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `tsconfig`: `tsconfig.json`s used throughout the monorepo
+- CloudFormation cannot update a stack when a custom-named resource requires replacing.
+  - https://repost.aws/knowledge-center/cloudformation-custom-name
+- [CI/CD on AWS Workshop](https://catalog.workshops.aws/cicdonaws/en-US/lab03/5-build-push-container)
+- [Pass vars between stage](https://repost.aws/questions/QUFA_N57ZSQQSKHg6sXUW-yQ/cdk-pipeline-best-way-to-share-parameters-cross-stage-same-account)
+  docker run -p 9000:8080 589767107094.dkr.ecr.ap-northeast-1.amazonaws.com/cicdstack-multitenanthublambda2d3d098d-odrgmwvoxwrx:latest
+- [EXPORT_NAME cannot be updated as it is in use by STACK_NAME](https://www.endoflineblog.com/cdk-tips-03-how-to-unblock-cross-stack-references)
+- [SSM](https://aws.amazon.com/blogs/infrastructure-and-automation/read-parameters-across-aws-regions-with-aws-cloudformation-custom-resources/)
+- [CrHelper](https://aws.amazon.com/blogs/infrastructure-and-automation/aws-cloudformation-custom-resource-creation-with-python-aws-lambda-and-crhelper/)
 
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
+## States
 
-### Utilities
+- Stack update in progress will fail the infraDeployment mainly by previous deployment. -> retry button or wait for 20 mins
 
-This Turborepo has some additional tools already setup for you:
+## Steps
 
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
-
-### Build
-
-To build all apps and packages, run the following command:
-
-```
-cd my-turborepo
-pnpm build
-```
-
-### Develop
-
-To develop all apps and packages, run the following command:
-
-```
-cd my-turborepo
-pnpm dev
-```
-
-### Remote Caching
-
-Turborepo can use a technique known as [Remote Caching](https://turbo.build/repo/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
-
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup), then enter the following commands:
-
-```
-cd my-turborepo
-npx turbo login
-```
-
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
-
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
-
-```
-npx turbo link
-```
-
-## Useful Links
-
-Learn more about the power of Turborepo:
-
-- [Tasks](https://turbo.build/repo/docs/core-concepts/monorepos/running-tasks)
-- [Caching](https://turbo.build/repo/docs/core-concepts/caching)
-- [Remote Caching](https://turbo.build/repo/docs/core-concepts/remote-caching)
-- [Filtering](https://turbo.build/repo/docs/core-concepts/monorepos/filtering)
-- [Configuration Options](https://turbo.build/repo/docs/reference/configuration)
-- [CLI Usage](https://turbo.build/repo/docs/reference/command-line-reference)
+1. Set up secret manager for PAT token (Feature: use conection)
+2. Delete all webhook generated from github to prevent push trigger for tenant pipeline(if you are not using connection)

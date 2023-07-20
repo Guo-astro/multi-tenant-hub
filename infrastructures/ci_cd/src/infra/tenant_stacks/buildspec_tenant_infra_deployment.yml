@@ -1,0 +1,48 @@
+version: 0.2
+env:
+  variables:
+    VOLTA_HOME: "/root/.volta"
+
+phases:
+  pre_build:
+    commands:
+      - COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
+      - IMAGE_TAG=${COMMIT_HASH:=latest}
+      # Installing project dependencies
+  build:
+    path: infrastructures/ci_cd/src/infra/tenant_stacks
+    commands:
+      - curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add -
+      - apt-get update && apt-get install -y jq
+      - curl https://get.volta.sh | bash
+      - export PATH="$VOLTA_HOME/bin:$PATH"
+
+      - volta install node@16.16.0
+      - volta pin node@16.16.0
+      - which npm
+      - npm install -g pnpm
+      - ls -al ..
+      - ls -al
+      - ls -al /root
+      - ls -al /root/.volta
+      - ls -al /root/.volta/bin
+      - echo $PATH
+      - export PATH="$NPM_BIN:$PATH"
+      - echo $PATH
+      - cd ./infrastructures/ci_cd
+      - pnpm i
+      - echo $tenanIdCfnParam
+      - |
+        pnpx cdk deploy tenantProviderInfraStack --method=direct \
+        --require-approval never --no-rollback \
+        --parameters tenanIdCfnParam=$tenanIdCfnParam \
+        --parameters authorizerFunctionArnCfnParam=$authorizerFunctionArnCfnParam \
+        --parameters systemProviderSettingsTableNameCfnParam=$systemProviderSettingsTableNameCfnParam \
+        --parameters tenantDetailsTableNameCfnParam=$tenantDetailsTableNameCfnParam \
+        --parameters tenantDetailsTableArnCfnParam=$tenantDetailsTableArnCfnParam \
+        --parameters usagePlanBasicTierIdCfnParam=$usagePlanBasicTierIdCfnParam \
+        --parameters systemSettingsTableArnCfnParam=$systemSettingsTableArnCfnParam \
+        --parameters usagePlanStandardTierIdCfnParam=$usagePlanStandardTierIdCfnParam \
+        --parameters usagePlanPremiumTierIdCfnParam=$usagePlanPremiumTierIdCfnParam \
+        --parameters usagePlanPlatinumTierIdCfnParam=$usagePlanPlatinumTierIdCfnParam \
+      - ls -al

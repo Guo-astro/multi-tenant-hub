@@ -1,0 +1,5 @@
+{
+  "python.analysis.extraPaths": [
+    "./infrastructures/ci_cd/src/services/pylayers"
+  ]
+}

@@ -1,0 +1,7 @@
+requests
+aws_requests_auth
+python-jose[cryptography]
+crhelper
+aws-lambda-powertools[Tracer,Logger,Metrics]
+simplejson
+jsonpickle

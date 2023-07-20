@@ -1,0 +1,2 @@
+pnpm install -g typescript
+pnpm install -g aws-cdk

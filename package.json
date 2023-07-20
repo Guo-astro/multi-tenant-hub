@@ -3,15 +3,40 @@
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
+    "test": "turbo run test",
     "lint": "turbo run lint",
-    "format": "prettier --write \"**/*.{ts,tsx,md}\""
+    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
+    "prepare": "husky install"
   },
   "devDependencies": {
-    "@turbo/gen": "^1.9.7",
-    "eslint": "^7.32.0",
-    "eslint-config-custom": "workspace:*",
-    "prettier": "^2.5.1",
-    "turbo": "^1.9.7"
+    "@multi-tenent-hub/eslint-config-custom": "workspace:*",
+    "@multi-tenent-hub/tsconfig": "workspace:*",
+    "@turbo/gen": "^1.10.4",
+    "aws-sdk-js-codemod": "^0.14.1",
+    "eslint": "^8.43.0",
+    "husky": "^8.0.3",
+    "lint-staged": "^13.2.2",
+    "prettier": "^2.8.8",
+    "ts-node": "^10.9.1",
+    "tsx": "^3.12.7",
+    "turbo": "^1.10.4"
   },
-  "packageManager": "pnpm@7.15.0"
+  "lint-staged": {
+    "apps/**/*.{js,ts,jsx,tsx}": [
+      "pnpx eslint --fix "
+    ],
+    "packages/**/*.{js,ts,jsx,tsx}": [
+      "pnpx eslint --fix"
+    ],
+    "infrastructures/**/*.{js,ts,jsx,tsx}": [
+      "pnpx eslint --fix"
+    ],
+    "*.json": [
+      "pnpx prettier --write"
+    ]
+  },
+  "name": "multi-tenant-hub",
+  "volta": {
+    "node": "18.14.0"
+  }
 }

@@ -1,0 +1,42 @@
+version: 0.2
+env:
+  exported-variables:
+    - IMAGE_REPO_URI
+phases:
+  install:
+    runtime-versions:
+      python: 3.9
+  pre_build:
+    commands:
+      - echo Logging in to Amazon ECR...
+      - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $IMAGE_REPO_URI
+      - REPOSITORY_URI=$IMAGE_REPO_URI
+      - COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
+      - IMAGE_TAG=${COMMIT_HASH:=latest}
+  build:
+    commands:
+      - ls -al
+      - echo $PYLAYER_IMAGE_URI:$PYLAYER_IMAGE_TAG
+      - echo $PUBLIC_LAYER_FETCH_ROLE_ARN
+      - |
+        CREDENTIALS=$(aws sts assume-role --role-arn $PUBLIC_LAYER_FETCH_ROLE_ARN --role-session-name temp_session --query 'Credentials.[AccessKeyId,SecretAccessKey,SessionToken]' --output text)
+        echo $CREDENTIALS
+        AWS_ACCESS_KEY_ID=$(echo $CREDENTIALS | cut -d' ' -f1)
+        AWS_SECRET_ACCESS_KEY=$(echo $CREDENTIALS | cut -d' ' -f2)
+        AWS_SESSION_TOKEN=$(echo $CREDENTIALS | cut -d' ' -f3)
+        echo "Access key ID: $AWS_ACCESS_KEY_ID"
+        echo "Secret access key: $AWS_SECRET_ACCESS_KEY"
+        echo "Session token: $AWS_SESSION_TOKEN"
+
+      - echo Build started on `date`
+      - echo Building the tenant_management_services Docker image...
+      - cd infrastructures/ci_cd/src/services/tenant_management
+      - docker build --build-arg PYLAYER_IMAGE=$PYLAYER_IMAGE_URI:$PYLAYER_IMAGE_TAG  --build-arg AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID  --build-arg AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY --build-arg AWS_SESSION_TOKEN=$AWS_SESSION_TOKEN -t $REPOSITORY_URI:latest .
+      - docker tag $REPOSITORY_URI:latest $IMAGE_REPO_URI:$IMAGE_TAG
+
+  post_build:
+    commands:
+      - echo Build completed on `date`
+      - echo Pushing the Docker image...
+      - docker push $REPOSITORY_URI:latest
+      - docker push $REPOSITORY_URI:$IMAGE_TAG

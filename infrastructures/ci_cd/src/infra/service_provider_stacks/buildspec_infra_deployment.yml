@@ -1,0 +1,106 @@
+version: 0.2
+env:
+  variables:
+    VOLTA_HOME: "/root/.volta"
+  exported-variables:
+    - restApiId
+    - stackRegion
+    - restApiIdStageName
+    - cognitoOperationUsersUserPoolId
+    - cognitoOperationUsersUserPoolClientId
+    - onBoardingAppBucketName
+    - tenantAppBucketName
+    - adminAppBucketName
+    - onBoardingAppDistributionId
+    - tenantAppDistributionId
+    - adminDistributionId
+    - serverlessSaaSSettingsTableArn
+    - serverlessSaaSSettingsTableName
+    - tenantStackMappingTableArn
+    - tenantStackMappingTableName
+    - tenantDetailsTableArn
+    - tenantDetailsTableName
+    - tenantUserMappingTableArn
+    - tenantUserMappingTableName
+
+phases:
+  pre_build:
+    commands:
+      - COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
+      - IMAGE_TAG=${COMMIT_HASH:=latest}
+  build:
+    commands:
+      - curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add -
+      - apt-get update && apt-get install -y jq
+      - curl https://get.volta.sh | bash
+      - export PATH="$VOLTA_HOME/bin:$PATH"
+
+      - volta install node@16.16.0
+      - volta pin node@16.16.0
+      - which npm
+      - npm install -g pnpm
+      - ls -al ..
+      - ls -al
+      - ls -al /root
+      - ls -al /root/.volta
+      - ls -al /root/.volta/bin
+      - echo $PATH
+      - export PATH="$NPM_BIN:$PATH"
+      - echo $PATH
+      - cd ./infrastructures/ci_cd
+      - pnpm i
+      - |
+        pnpx cdk deploy systemProviderInfraStack --method=direct \
+          --require-approval never \
+          --outputs-file outputs.json -c lambdaImageTag=$IMAGE_TAG -c tenantProvisiongPipelineName=$tenantProvisiongPipelineName
+      - ls -al
+      - jq '.' outputs.json
+
+      - export onBoardingAppBucketName=$(jq -r '.systemProviderInfraStack.onBoardingAppBucketName // empty' ./outputs.json)
+      - export tenantAppBucketName=$(jq -r '.systemProviderInfraStack.tenantAppBucketName // empty' ./outputs.json)
+      - export adminAppBucketName=$(jq -r '.systemProviderInfraStack.adminAppBucketName // empty' ./outputs.json)
+
+      - export onBoardingAppDistributionId=$(jq -r '.systemProviderInfraStack.onBoardingAppCFDistributionId // empty' ./outputs.json)
+      - export adminDistributionId=$(jq -r '.systemProviderInfraStack.adminCFDistributionId // empty' ./outputs.json)
+      - export tenantAppDistributionId=$(jq -r '.systemProviderInfraStack.tenantAppCFDistributionId // empty' ./outputs.json)
+
+      - export restApiId=$(jq -r '.systemProviderInfraStack.restApiId // empty' ./outputs.json)
+      - export stackRegion=$(jq -r '.systemProviderInfraStack.stackRegion // empty' ./outputs.json)
+      - export restApiIdStageName=$(jq -r '.systemProviderInfraStack.restApiIdStageName // empty' ./outputs.json)
+      - export cognitoOperationUsersUserPoolId=$(jq -r '.systemProviderInfraStack.cognitoOperationUsersUserPoolId // empty' ./outputs.json)
+      - export cognitoOperationUsersUserPoolClientId=$(jq -r '.systemProviderInfraStack.cognitoOperationUsersUserPoolClientId // empty' ./outputs.json)
+      - export serverlessSaaSSettingsTableArn=$(jq -r '.systemProviderInfraStack.serverlessSaaSSettingsTableArn // empty' ./outputs.json)
+      - export serverlessSaaSSettingsTableName=$(jq -r '.systemProviderInfraStack.serverlessSaaSSettingsTableName // empty' ./outputs.json)
+      - export tenantStackMappingTableArn=$(jq -r '.systemProviderInfraStack.tenantStackMappingTableArn // empty' ./outputs.json)
+      - export tenantStackMappingTableName=$(jq -r '.systemProviderInfraStack.tenantStackMappingTableName // empty' ./outputs.json)
+      - export tenantDetailsTableArn=$(jq -r '.systemProviderInfraStack.tenantDetailsTableArn // empty' ./outputs.json)
+      - export tenantDetailsTableName=$(jq -r '.systemProviderInfraStack.tenantDetailsTableName // empty' ./outputs.json)
+      - export tenantUserMappingTableArn=$(jq -r '.systemProviderInfraStack.tenantUserMappingTableArn // empty' ./outputs.json)
+      - export tenantUserMappingTableName=$(jq -r '.systemProviderInfraStack.tenantUserMappingTableName // empty' ./outputs.json)
+
+      - echo $adminAppBucketName
+      - echo $restApiId
+      - echo $stackRegion
+      - echo $tenantAppBucketName
+      - echo $onBoardingAppBucketName
+      - echo $onBoardingAppDistributionId
+      - echo $tenantAppDistributionId
+      - echo $adminDistributionId
+      - echo $restApiIdStageName
+      - echo $cognitoOperationUsersUserPoolId
+      - echo $cognitoOperationUsersUserPoolClientId
+      - echo $IMAGE_TAG
+      - echo $COMMIT_HASH
+      - echo $serverlessSaaSSettingsTableArn
+      - echo $serverlessSaaSSettingsTableName
+      - echo $tenantStackMappingTableArn
+      - echo $tenantStackMappingTableName
+      - echo $tenantDetailsTableArn
+      - echo $tenantDetailsTableName
+      - echo $tenantUserMappingTableArn
+      - echo $tenantUserMappingTableName
+      - |
+        pnpx cdk deploy tenantProvisioningPipeline --method=direct \
+          --require-approval never \
+          --outputs-file tenantProvisioningPipelineOutputs.json
+      - jq '.' tenantProvisioningPipelineOutputs.json
