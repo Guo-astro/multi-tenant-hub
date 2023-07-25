@@ -19,6 +19,7 @@ import { captureLambdaHandler } from "@aws-lambda-powertools/tracer";
 import { tracer } from "../shared/Tracer";
 import { logMetrics } from "@aws-lambda-powertools/metrics";
 import { metrics } from "../shared/Metrics";
+import { TenantSystemNameDict } from "@/shared/Constants";
 
 logger.info("Loading function");
 
@@ -280,151 +281,6 @@ const checkStackUpdateStatus = async (
     await putJobFailure(jobId, "Update failed: " + status);
   }
 };
-//TODO: clean up unused code
-// async function stackExists(stack: string): Promise<boolean> {
-//   try {
-//     await cf.describeStacks({ StackName: stack });
-//     return true;
-//   } catch (error) {
-//     logger.warn(`${error}`, { customKey: error });
-
-//     if (error instanceof Error) {
-//       return false;
-//     } else {
-//       throw error;
-//     }
-//   }
-// }
-//TODO: clean up unused code
-// async function updateStack(
-//   stack: string,
-//   params: Array<AWS_CloudFormation.Parameter>
-// ) {
-//   try {
-//     const template = await cf.getTemplate({ StackName: stack });
-
-//     await cf.updateStack({
-//       StackName: stack,
-//       Capabilities: ["CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND"],
-//       Parameters: params,
-//       TemplateBody: template.TemplateBody,
-//     });
-//     return true;
-//   } catch (error) {
-//     logger.error(`${error}`, { customKey: error });
-
-//     if (error instanceof Error) {
-//       if (error.message === "No updates are to be performed.") {
-//         return false;
-//       } else {
-//         throw new Error(`Error updating CloudFormation stack "${stack}"`);
-//       }
-//     }
-//   }
-// }
-//TODO: clean up unused code(Possible we want to save in our snippets)
-// const create_stack = async (
-//   stack: string,
-//   params: Array<AWS_CloudFormation.Parameter>
-// ): Promise<void> => {
-//   try {
-//     await cf.createStack({
-//       StackName: stack,
-//       Capabilities: ["CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND"],
-//       Parameters: params,
-//     });
-//   } catch (error) {
-//     logger.error(`${error}`, { customKey: error });
-//     error;
-
-//     if (error instanceof Error) {
-//       throw new TypeError(
-//         `Failed to create stack "${stack}": ${error.message}`
-//       );
-//     }
-//   }
-// };
-//TODO: clean up unused code
-// const start_update_or_create = async (
-//   job_id: string,
-//   stack: string,
-//   params: Array<AWS_CloudFormation.Parameter>,
-//   outputVariables: OutputVariables
-// ): Promise<void> => {
-//   if (await stackExists(stack)) {
-//     const status = await getStackStatus(stack);
-//     if (
-//       !["CREATE_COMPLETE", "ROLLBACK_COMPLETE", "UPDATE_COMPLETE"].includes(
-//         status
-//       )
-//     ) {
-//       // If the CloudFormation stack is not in a state where it can be updated again,
-//       // fail the job right away.
-//       await putJobFailure(
-//         job_id,
-//         "Stack cannot be updated when status is: " + status
-//       );
-//       return;
-//     }
-
-//     const were_updates = await updateStack(stack, params);
-
-//     if (were_updates === true) {
-//       // If there were updates, continue the job so it can monitor the progress of the update.
-//       await continueJobLater(job_id, "Stack update started");
-//     } else {
-//       // If there were no updates, succeed the job immediately.
-//       await putJobSuccess(
-//         job_id,
-//         "There were no stack updates",
-//         outputVariables
-//       );
-//     }
-//   } else {
-//     // If the stack doesn't already exist, pass outputVariables to the next stage to trigger cdk deploy .
-//     await putJobSuccess(
-//       job_id,
-//       "Output env vars for cdk deploy. putJobSuccess for now",
-//       outputVariables
-//     );
-//   }
-// };
-
-// const findArtifactByName = (artifacts: Artifact[], name: string): Artifact => {
-//   for (const artifact of artifacts) {
-//     if (artifact.name === name) {
-//       return artifact;
-//     }
-//   }
-
-//   throw new Error(`Input artifact named "${name}" not found in event`);
-// };
-
-// interface ArtifactLocation {
-//   s3Location: {
-//     bucketName: string;
-//     objectKey: string;
-//   };
-// }
-
-// const getTemplateUrl = async (
-//   s3: S3Client,
-//   artifact: { location: ArtifactLocation },
-//   fileInZip: string
-// ): Promise<string> => {
-//   const { bucketName, objectKey } = artifact.location.s3Location;
-//   logger.info(bucketName, objectKey);
-
-//   const tmpFilePath = await getObjectAndSaveToFile(s3, bucketName, objectKey);
-//   logger.info(`getObjectAndSaveToFile ${tmpFilePath}`);
-
-//   const extractedFile = extractFileFromZip(tmpFilePath, fileInZip);
-//   if (extractedFile == null) {
-//     throw new Error("extractedFile is null");
-//   }
-//   await uploadFileToS3(s3, bucketName, fileInZip, extractedFile);
-//   return `https://${bucketName}.s3.amazonaws.com/${fileInZip}`;
-// };
 
 const updateTenantstackMapping = async (
   tenantId: string,
@@ -468,10 +324,12 @@ const lambdaHandler = async (event: CodePipelineEvent) => {
       throw Error("table_tenant_stack_mapping is undefined");
     }
     logger.info(`applyLatestRelease for tenants: ${JSON.stringify(mappings)} `);
+    let outputVariablesList = [];
+
     for (const _mapping of mappings["Items"]) {
       const mapping = unmarshall(_mapping);
-      const stack = mapping["stackName"];
-      const tenantId = mapping["tenantId"];
+      const stack = mapping["stackName"] as string;
+      const tenantId = mapping["tenantId"] as string;
       const applyLatestRelease = mapping["applyLatestRelease"];
 
       if (!Boolean(applyLatestRelease)) {
@@ -489,38 +347,38 @@ const lambdaHandler = async (event: CodePipelineEvent) => {
       const params = await getTenantParams(tenantId);
       logger.info("Passing parameter to enable canary deployment for lambda's");
       //TODO: doc it. These are parameters pass through to TenantDeploymentStack.Not really used in this handler.
-      for (const [key, value] of Object.entries(outputVariables)) {
-        addParameter(params, key, value);
+      // for (const [key, value] of Object.entries(outputVariables)) {
+      //   addParameter(params, key, value);
+      // }
+      logger.info(" Kick off a stack update or create");
+      if (!Boolean(stack)) {
+        throw Error("tenant stack is undefined");
       }
 
-      if ("continuationToken" in job_data) {
-        logger.info(
-          "If we're continuing then the create/update has already been triggered we just need to check if it has finished."
-        );
+      const tenantSpecificData = {
+        stack,
+        tenantId,
+      };
+      outputVariablesList.push(tenantSpecificData);
 
-        if (!Boolean(stack)) {
-          throw Error("tenant stack is undefined");
-        }
+      logger.info(
+        `updateTenantstackMapping ${tenantId} with commit_id ${commit_id}`
+      );
 
-        await checkStackUpdateStatus(job_id, stack, outputVariables);
-      } else {
-        logger.info(" Kick off a stack update or create");
-        if (!Boolean(stack)) {
-          throw Error("tenant stack is undefined");
-        }
-        /****Trigger Cdk deploy in the next stage, which will automatically update the stack.*/
-        await putJobSuccess(
-          job_id,
-          "Output env vars for cdk deploy. Always putJobSuccess for trigger the next stage cdk deploy",
-          outputVariables
-        );
-
-        logger.info(
-          " If we are applying the release, update tenant stack mapping with the pipeline id"
-        );
-        await updateTenantstackMapping(tenantId, commit_id);
-      }
+      await updateTenantstackMapping(tenantId, commit_id);
     }
+    /****Trigger Cdk deploy in the next stage, which will automatically update the stack.*/
+    const outputVariablesDict = {
+      [TenantSystemNameDict.tenanIdCfnParam]: btoa(
+        JSON.stringify(outputVariablesList)
+      ),
+    } as OutputVariables;
+    logger.info(`putJobSuccess ${JSON.stringify(outputVariablesDict)}`);
+    await putJobSuccess(
+      job_id,
+      "Output env vars for cdk deploy. Always putJobSuccess for trigger the next stage cdk deploy",
+      outputVariablesDict
+    );
   } catch (error) {
     logger.error(`${error}`, { customKey: error });
 

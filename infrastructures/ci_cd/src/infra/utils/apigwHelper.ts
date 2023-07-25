@@ -7,7 +7,7 @@ import * as lambda from "aws-cdk-lib/aws-lambda";
 import {
   ResourceConfig,
   SecurityTypeOptions,
-} from "shared/prop_extensions.types";
+} from "@/shared/prop_extensions.types";
 
 const createResource = (
   api: apigateway.RestApi,

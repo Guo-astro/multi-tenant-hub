@@ -6,7 +6,7 @@ import * as iam from "aws-cdk-lib/aws-iam";
 import * as codedeploy from "aws-cdk-lib/aws-codedeploy";
 import * as cloudwatch from "aws-cdk-lib/aws-cloudwatch";
 import { Repository } from "aws-cdk-lib/aws-ecr";
-import { createCfnOutputIfNotExists } from "./Utils";
+import { generateLogicalId } from "./Utils";
 
 export class LambdaIntegrationHelper<
   FunctionKey extends string | number | symbol,
@@ -88,13 +88,15 @@ interface CreateContaineredLambdaFunctionProps {
   threshold: number;
   statistic: cloudwatch.Statistic;
   period: cdk.Duration;
+  cfnOutputSuffix?: string;
+  tenantId: string;
 }
 export function createContaineredLambdaFunction(
   scope: Construct,
   props: CreateContaineredLambdaFunctionProps
 ): lambda.Function {
   const {
-    functionName: functionId,
+    functionName,
     lambdaEcrRepository,
     handlerName,
     imageTag: imageTag,
@@ -109,6 +111,8 @@ export function createContaineredLambdaFunction(
     threshold,
     statistic,
     period,
+    cfnOutputSuffix,
+    tenantId,
   } = props;
   const date = new Date();
 
@@ -121,53 +125,59 @@ export function createContaineredLambdaFunction(
   };
 
   // Lambda Function
-  const lambdaFunction = new lambda.Function(scope, functionId, {
-    code: lambda.Code.fromEcrImage(lambdaEcrRepository, {
-      cmd: [handlerName],
-      tagOrDigest: imageTag,
-    }),
-    description: `This lambda deployed at ${uniqueVersionId}`,
-    handler: lambda.Handler.FROM_IMAGE,
-    runtime: lambda.Runtime.FROM_IMAGE,
-    timeout: cdk.Duration.seconds(30),
-    role,
-    tracing,
-    environment: combinedEnvironment,
-  });
-  createCfnOutputIfNotExists(scope, {
-    id: `${props.functionName}CfnOutputId`,
-    props: {
-      description: "Function Arn to be used cross stack",
-      value: lambdaFunction.functionArn,
-      exportName: `${props.functionName}CfnOutput`,
-    },
-  });
+  const lambdaFunction = new lambda.Function(
+    scope,
+    generateLogicalId(functionName, tenantId),
+
+    {
+      code: lambda.Code.fromEcrImage(lambdaEcrRepository, {
+        cmd: [handlerName],
+        tagOrDigest: imageTag,
+      }),
+      description: `This lambda deployed at ${uniqueVersionId}`,
+      handler: lambda.Handler.FROM_IMAGE,
+      runtime: lambda.Runtime.FROM_IMAGE,
+      timeout: cdk.Duration.seconds(30),
+      role,
+      tracing,
+      environment: combinedEnvironment,
+    }
+  );
+
   // Alias
   //TODO: Use alias later
   const alias = lambdaFunction.addAlias(aliasName);
   // CloudWatch Alarm
-  const alarm = new cloudwatch.Alarm(scope, `${functionId}CanaryErrorsAlarm`, {
-    alarmDescription,
-    comparisonOperator,
-    evaluationPeriods,
-    metric: lambdaFunction.metricErrors().with({
-      statistic,
-      period,
-      dimensionsMap: {
-        Resource: `${lambdaFunction.functionName}:live`,
-        FunctionName: lambdaFunction.functionName,
-        ExecutedVersion: lambdaFunction.currentVersion.version,
-      },
-    }),
-    threshold,
-  });
+  const alarm = new cloudwatch.Alarm(
+    scope,
+    `${functionName}CanaryErrorsAlarm`,
+    {
+      alarmDescription,
+      comparisonOperator,
+      evaluationPeriods,
+      metric: lambdaFunction.metricErrors().with({
+        statistic,
+        period,
+        dimensionsMap: {
+          Resource: `${lambdaFunction.functionName}:live`,
+          FunctionName: lambdaFunction.functionName,
+          ExecutedVersion: lambdaFunction.currentVersion.version,
+        },
+      }),
+      threshold,
+    }
+  );
 
   // CodeDeploy Deployment Group
-  new codedeploy.LambdaDeploymentGroup(scope, `${functionId}DeploymentGroup`, {
-    alias,
-    deploymentConfig,
-    alarms: [alarm],
-  });
+  new codedeploy.LambdaDeploymentGroup(
+    scope,
+    `${functionName}DeploymentGroup`,
+    {
+      alias,
+      deploymentConfig,
+      alarms: [alarm],
+    }
+  );
 
   return lambdaFunction;
 }
@@ -189,6 +199,8 @@ interface CreateFileBasedLambdaFunctionProps {
   period: cdk.Duration;
   runtime: lambda.Runtime;
   layers: lambda.ILayerVersion[];
+  cfnOutputSuffix?: string;
+  tenantId: string;
 }
 
 export function createFileBasedLambdaFunction(
@@ -212,6 +224,8 @@ export function createFileBasedLambdaFunction(
     period,
     runtime,
     layers,
+    cfnOutputSuffix,
+    tenantId,
   } = props;
 
   const date = new Date();
@@ -224,35 +238,39 @@ export function createFileBasedLambdaFunction(
   };
 
   // Lambda Function
-  const lambdaFunction = new lambda.Function(scope, functionName, {
-    code: lambda.Code.fromAsset(assetPath, {
-      bundling: {
-        image: lambda.Runtime.PYTHON_3_9.bundlingImage,
-        command: [
-          "bash",
-          "-c",
-          "pip install -r requirements.txt -t /asset-output && cp -au . /asset-output",
-        ],
-      },
-    }),
-    description: `This lambda deployed at ${uniqueVersionId}`,
-    handler: handlerName,
-    runtime: runtime,
-    timeout: cdk.Duration.seconds(90),
-    role,
-    tracing,
-    environment: combinedEnvironment,
-    layers,
-  });
+  const lambdaFunction = new lambda.Function(
+    scope,
+    generateLogicalId(functionName, tenantId),
+    {
+      code: lambda.Code.fromAsset(assetPath, {
+        bundling: {
+          image: lambda.Runtime.PYTHON_3_9.bundlingImage,
+          command: [
+            "bash",
+            "-c",
+            "pip install -r requirements.txt -t /asset-output && cp -au . /asset-output",
+          ],
+        },
+      }),
+      description: `This lambda deployed at ${uniqueVersionId}`,
+      handler: handlerName,
+      runtime: runtime,
+      timeout: cdk.Duration.seconds(90),
+      role,
+      tracing,
+      environment: combinedEnvironment,
+      layers,
+    }
+  );
 
-  createCfnOutputIfNotExists(scope, {
-    id: `${functionName}CfnOutputId`,
-    props: {
-      description: "Function Arn to be used cross stack",
-      value: lambdaFunction.functionArn,
-      exportName: `${functionName}CfnOutput`,
-    },
-  });
+  // createCfnOutputIfNotExists(scope, {
+  //   id: `${functionName}CfnOutputId`,
+  //   props: {
+  //     description: "Function Arn to be used cross stack",
+  //     value: lambdaFunction.functionArn,
+  //     exportName: `${functionName}CfnOutput-${cfnOutputSuffix}`,
+  //   },
+  // });
 
   // Alias
   //TODO: Use alias later

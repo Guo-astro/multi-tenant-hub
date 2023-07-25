@@ -6,9 +6,20 @@ import { SaaSProviderWebHostingStack } from "@/infra/service_provider_stacks/Saa
 import { SaaSProviderAuthStack } from "@/infra/service_provider_stacks/SaaSProviderAuthStack";
 import { SaaSProviderDataStack } from "@/infra/service_provider_stacks/SaaSProviderDataStack";
 import { SaaSProviderLambdaStack } from "@/infra/service_provider_stacks/SaaSProviderLambdaStack";
-import { createCfnOutputIfNotExists } from "../utils/Utils";
-import { DeploymentStackProps } from "shared/prop_extensions.types";
+import {
+  createCfnOutputIfNotExists,
+  generateCfnExportName,
+  generateLogicalId,
+} from "../utils/Utils";
+import { DeploymentStackProps } from "@/shared/prop_extensions.types";
 import { SaaSProviderCustomResourceStack } from "./SaaSProviderCustomResourceStack";
+import {
+  SystemProviderCfnOutputs,
+  SystemProviderInfraStackNameDict,
+  TenantProvisioningPipelineNameDict,
+  TenantSystemNameDict,
+} from "../../shared/Constants";
+
 export class DeploymentStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: DeploymentStackProps) {
     super(scope, id, props);
@@ -21,10 +32,25 @@ export class DeploymentStack extends cdk.Stack {
     const apiKeyStandardTierParameter = "b1c735d8-6d96-11eb-a28b-38f9d33cfd0f";
     const apiKeyBasicTierParameter = "daae9784-6d96-11eb-a28b-38f9d33cfd0f";
     const stageName = props.tags.environment;
-
+    const tenantId = "system";
     const webHostingStack = new SaaSProviderWebHostingStack(
       this,
-      "SaaSProviderWebHostingStack",
+      generateLogicalId(
+        SystemProviderInfraStackNameDict.webHostingStack,
+        tenantId
+      ),
+      {
+        tags: {
+          environment: stageName,
+        },
+        tenantId,
+      }
+    );
+
+    const dataStack = new SaaSProviderDataStack(
+      this,
+      generateLogicalId(SystemProviderInfraStackNameDict.dataStack, tenantId),
+
       {
         tags: {
           environment: stageName,
@@ -32,33 +58,143 @@ export class DeploymentStack extends cdk.Stack {
       }
     );
 
-    const dataStack = new SaaSProviderDataStack(this, "SaaSProviderDataStack", {
-      tags: {
-        environment: stageName,
+    createCfnOutputIfNotExists(this, {
+      id: generateLogicalId(
+        SystemProviderCfnOutputs.serverlessSaaSSettingsTableArn,
+        tenantId
+      ),
+
+      props: {
+        value: dataStack.serverlessSaaSSettingsTableArn,
+        exportName: generateCfnExportName(
+          SystemProviderCfnOutputs.serverlessSaaSSettingsTableArn
+        ),
       },
     });
 
-    const authStack = new SaaSProviderAuthStack(this, "SaaSProviderAuthStack", {
-      tags: {
-        environment: stageName,
+    createCfnOutputIfNotExists(this, {
+      id: generateLogicalId(
+        SystemProviderCfnOutputs.serverlessSaaSSettingsTableName,
+        tenantId
+      ),
+      props: {
+        value: dataStack.serverlessSaaSSettingsTableName,
+        exportName: generateCfnExportName(
+          SystemProviderCfnOutputs.serverlessSaaSSettingsTableName
+        ),
       },
-
-      adminEmail: adminEmailParameter,
-      systemAdminRoleName: systemAdminRoleNameParameter,
-      apiKeyOperationUsers: apiKeyOperationUsersParameter,
-      adminUserPoolCallbackURL: webHostingStack.adminAppSiteUrlName,
-      tenantUserPoolCallbackURL: webHostingStack.tenantAppSiteUrlName,
     });
-    const functionStack = new SaaSProviderLambdaStack(
+
+    createCfnOutputIfNotExists(this, {
+      id: generateLogicalId(
+        SystemProviderCfnOutputs.tenantStackMappingTableArn,
+        tenantId
+      ),
+      props: {
+        value: dataStack.tenantStackMappingTableArn,
+        exportName: generateCfnExportName(
+          SystemProviderCfnOutputs.tenantStackMappingTableArn
+        ),
+      },
+    });
+
+    createCfnOutputIfNotExists(this, {
+      id: generateLogicalId(
+        SystemProviderCfnOutputs.tenantStackMappingTableName,
+        tenantId
+      ),
+      props: {
+        value: dataStack.tenantStackMappingTableName,
+        exportName: generateCfnExportName(
+          SystemProviderCfnOutputs.tenantStackMappingTableName
+        ),
+      },
+    });
+
+    createCfnOutputIfNotExists(this, {
+      id: generateLogicalId(
+        SystemProviderCfnOutputs.tenantDetailsTableArn,
+        tenantId
+      ),
+
+      props: {
+        value: dataStack.tenantDetailsTableArn,
+        exportName: generateCfnExportName(
+          SystemProviderCfnOutputs.tenantDetailsTableArn
+        ),
+      },
+    });
+
+    createCfnOutputIfNotExists(this, {
+      id: generateLogicalId(
+        SystemProviderCfnOutputs.tenantDetailsTableName,
+        tenantId
+      ),
+      props: {
+        value: dataStack.tenantDetailsTableName,
+        exportName: generateCfnExportName(
+          SystemProviderCfnOutputs.tenantDetailsTableName
+        ),
+      },
+    });
+
+    createCfnOutputIfNotExists(this, {
+      id: generateLogicalId(
+        SystemProviderCfnOutputs.tenantUserMappingTableArn,
+        tenantId
+      ),
+      props: {
+        value: dataStack.tenantUserMappingTableArn,
+        exportName: generateCfnExportName(
+          SystemProviderCfnOutputs.tenantUserMappingTableArn
+        ),
+      },
+    });
+
+    createCfnOutputIfNotExists(this, {
+      id: generateLogicalId(
+        SystemProviderCfnOutputs.tenantUserMappingTableName,
+        tenantId
+      ),
+      props: {
+        value: dataStack.tenantUserMappingTableName,
+        exportName: generateCfnExportName(
+          SystemProviderCfnOutputs.tenantUserMappingTableName
+        ),
+      },
+    });
+    const authStack = new SaaSProviderAuthStack(
       this,
-      "SaaSProviderLambdaStack",
+      generateLogicalId(SystemProviderInfraStackNameDict.authStack, tenantId),
       {
         tags: {
           environment: stageName,
         },
-        lambdaImageTag: this.node.tryGetContext("lambdaImageTag") as string,
+
+        adminEmail: adminEmailParameter,
+        systemAdminRoleName: systemAdminRoleNameParameter,
+        apiKeyOperationUsers: apiKeyOperationUsersParameter,
+        adminUserPoolCallbackURL: webHostingStack.adminAppSiteUrlName,
+        tenantUserPoolCallbackURL: webHostingStack.tenantAppSiteUrlName,
+        tenantId,
+      }
+    );
+    const functionStack = new SaaSProviderLambdaStack(
+      this,
+      generateLogicalId(
+        SystemProviderInfraStackNameDict.functionStack,
+        tenantId
+      ),
+
+      {
+        tags: {
+          environment: stageName,
+        },
+        lambdaImageTag: this.node.tryGetContext(
+          SystemProviderInfraStackNameDict.lambdaImageTag
+        ) as string,
         tenantProvisioningPipelineName: this.node.tryGetContext(
-          "tenantProvisiongPipelineName"
+          TenantProvisioningPipelineNameDict.tenantProvisiongPipelineName
         ) as string,
 
         lambdaEcrRepositoryUri: props.lambdaEcrRepositoryUri,
@@ -90,53 +226,30 @@ export class DeploymentStack extends cdk.Stack {
           dataStack.serverlessSaaSSettingsTableName,
 
         lambdaCanaryDeploymentPreference: false,
+        tenantId,
       }
     );
-
-    const apiStack = new SystemProviderAPIStack(this, "SaaSProviderAPIStack", {
-      tags: {
-        environment: stageName,
+    createCfnOutputIfNotExists(this, {
+      id: generateLogicalId(
+        SystemProviderCfnOutputs.sharedServicesAuthorizerFunctionCfnOutput,
+        tenantId
+      ),
+      props: {
+        description: "Function Arn to be used cross stack",
+        value: functionStack.sharedServicesAuthorizerFunctionArn,
+        exportName: generateCfnExportName(
+          SystemProviderCfnOutputs.sharedServicesAuthorizerFunctionCfnOutput
+        ),
       },
-      stageName,
-      registerTenantLambdaExecutionRoleArn:
-        functionStack.registerTenantLambdaExecutionRoleArn,
-      tenantManagementLambdaExecutionRoleArn:
-        functionStack.tenantManagementLambdaExecutionRoleArn,
-      registerTenantFunctionArn: functionStack.registerTenantFunctionArn,
-      provisionTenantFunctionArn: functionStack.provisionTenantFunctionArn,
-      deProvisionTenantFunctionArn: functionStack.deProvisionTenantFunctionArn,
-      activateTenantFunctionArn: functionStack.activateTenantFunctionArn,
-      getTenantsFunctionArn: functionStack.getTenantsFunctionArn,
-      createTenantFunctionArn: functionStack.createTenantFunctionArn,
-      getTenantFunctionArn: functionStack.getTenantFunctionArn,
-      deactivateTenantFunctionArn: functionStack.deactivateTenantFunctionArn,
-      updateTenantFunctionArn: functionStack.updateTenantFunctionArn,
-      getTenantConfigFunctionArn: functionStack.getTenantConfigFunctionArn,
-      getUsersFunctionArn: functionStack.getUsersFunctionArn,
-      getUserFunctionArn: functionStack.getUserFunctionArn,
-      updateUserFunctionArn: functionStack.updateUserFunctionArn,
-      disableUserFunctionArn: functionStack.disableUserFunctionArn,
-      createTenantAdminUserFunctionArn:
-        functionStack.createTenantAdminUserFunctionArn,
-      createUserFunctionArn: functionStack.createUserFunctionArn,
-      disableUsersByTenantFunctionArn:
-        functionStack.disableUsersByTenantFunctionArn,
-      enableUsersByTenantFunctionArn:
-        functionStack.enableUsersByTenantFunctionArn,
-      sharedServicesAuthorizerFunctionArn:
-        functionStack.sharedServicesAuthorizerFunctionArn,
-      apiKeyOperationUsersParameter,
-      apiKeyPlatinumTierParameter,
-      apiKeyPremiumTierParameter,
-      apiKeyStandardTierParameter,
-      apiKeyBasicTierParameter,
     });
-
-    const saaSProviderAPILambdaPermissionStack =
-      new SaaSProviderAPILambdaPermissionStack(this, "perm", {
+    const apiStack = new SystemProviderAPIStack(
+      this,
+      generateLogicalId(SystemProviderInfraStackNameDict.apigwStack, tenantId),
+      {
         tags: {
           environment: stageName,
         },
+        stageName,
         registerTenantLambdaExecutionRoleArn:
           functionStack.registerTenantLambdaExecutionRoleArn,
         tenantManagementLambdaExecutionRoleArn:
@@ -163,14 +276,120 @@ export class DeploymentStack extends cdk.Stack {
           functionStack.disableUsersByTenantFunctionArn,
         enableUsersByTenantFunctionArn:
           functionStack.enableUsersByTenantFunctionArn,
-        authorizerFunctionArn:
+        sharedServicesAuthorizerFunctionArn:
           functionStack.sharedServicesAuthorizerFunctionArn,
-        apiId: apiStack.restApiId,
-      });
+        apiKeyOperationUsersParameter,
+        apiKeyPlatinumTierParameter,
+        apiKeyPremiumTierParameter,
+        apiKeyStandardTierParameter,
+        apiKeyBasicTierParameter,
+        tenantId,
+      }
+    );
+    createCfnOutputIfNotExists(this, {
+      id: generateLogicalId(
+        SystemProviderCfnOutputs.usagePlanBasicTierId,
+        tenantId
+      ),
+
+      props: {
+        value: apiStack.usagePlanBasicTier,
+        exportName: generateCfnExportName(
+          SystemProviderCfnOutputs.usagePlanBasicTierId
+        ),
+      },
+    });
+    createCfnOutputIfNotExists(this, {
+      id: generateLogicalId(
+        SystemProviderCfnOutputs.usagePlanStandardTierId,
+        tenantId
+      ),
+
+      props: {
+        value: apiStack.usagePlanStandardTier,
+        exportName: generateCfnExportName(
+          SystemProviderCfnOutputs.usagePlanStandardTierId
+        ),
+      },
+    });
+    createCfnOutputIfNotExists(this, {
+      id: generateLogicalId(
+        SystemProviderCfnOutputs.usagePlanPremiumTierId,
+        tenantId
+      ),
+
+      props: {
+        value: apiStack.usagePlanPremiumTier,
+        exportName: generateCfnExportName(
+          SystemProviderCfnOutputs.usagePlanPremiumTierId
+        ),
+      },
+    });
+
+    createCfnOutputIfNotExists(this, {
+      id: generateLogicalId(
+        SystemProviderCfnOutputs.usagePlanPlatinumTierId,
+        tenantId
+      ),
+
+      props: {
+        value: apiStack.usagePlanPlatinumTier,
+        exportName: generateCfnExportName(
+          SystemProviderCfnOutputs.usagePlanPlatinumTierId
+        ),
+      },
+    });
+    const saaSProviderAPILambdaPermissionStack =
+      new SaaSProviderAPILambdaPermissionStack(
+        this,
+        generateLogicalId(
+          SystemProviderInfraStackNameDict.apigwPermissonStack,
+          tenantId
+        ),
+        {
+          tags: {
+            environment: stageName,
+          },
+          registerTenantLambdaExecutionRoleArn:
+            functionStack.registerTenantLambdaExecutionRoleArn,
+          tenantManagementLambdaExecutionRoleArn:
+            functionStack.tenantManagementLambdaExecutionRoleArn,
+          registerTenantFunctionArn: functionStack.registerTenantFunctionArn,
+          provisionTenantFunctionArn: functionStack.provisionTenantFunctionArn,
+          deProvisionTenantFunctionArn:
+            functionStack.deProvisionTenantFunctionArn,
+          activateTenantFunctionArn: functionStack.activateTenantFunctionArn,
+          getTenantsFunctionArn: functionStack.getTenantsFunctionArn,
+          createTenantFunctionArn: functionStack.createTenantFunctionArn,
+          getTenantFunctionArn: functionStack.getTenantFunctionArn,
+          deactivateTenantFunctionArn:
+            functionStack.deactivateTenantFunctionArn,
+          updateTenantFunctionArn: functionStack.updateTenantFunctionArn,
+          getTenantConfigFunctionArn: functionStack.getTenantConfigFunctionArn,
+          getUsersFunctionArn: functionStack.getUsersFunctionArn,
+          getUserFunctionArn: functionStack.getUserFunctionArn,
+          updateUserFunctionArn: functionStack.updateUserFunctionArn,
+          disableUserFunctionArn: functionStack.disableUserFunctionArn,
+          createTenantAdminUserFunctionArn:
+            functionStack.createTenantAdminUserFunctionArn,
+          createUserFunctionArn: functionStack.createUserFunctionArn,
+          disableUsersByTenantFunctionArn:
+            functionStack.disableUsersByTenantFunctionArn,
+          enableUsersByTenantFunctionArn:
+            functionStack.enableUsersByTenantFunctionArn,
+          authorizerFunctionArn:
+            functionStack.sharedServicesAuthorizerFunctionArn,
+          apiId: apiStack.restApiId,
+          tenantId,
+        }
+      );
 
     const cfnCustomResourceStack = new SaaSProviderCustomResourceStack(
       this,
-      "CfnCustomResourceStack",
+      generateLogicalId(
+        SystemProviderInfraStackNameDict.customResource,
+        tenantId
+      ),
       {
         tags: {
           environment: stageName,
@@ -187,6 +406,7 @@ export class DeploymentStack extends cdk.Stack {
           functionStack.updateTenantStackMapTableFunctionArn,
         cognitoUserPoolId: authStack.cognitoUserPoolId,
         cognitoUserPoolClientId: authStack.cognitoUserPoolClientId,
+        tenantId,
       }
     );
     apiStack.addDependency(functionStack);
@@ -194,89 +414,134 @@ export class DeploymentStack extends cdk.Stack {
     cfnCustomResourceStack.addDependency(saaSProviderAPILambdaPermissionStack);
 
     createCfnOutputIfNotExists(this, {
-      id: "adminAppBucketName",
+      id: generateLogicalId(
+        SystemProviderCfnOutputs.adminAppBucketName,
+        tenantId
+      ),
       props: {
         description:
           "The name of the S3 Bucket for uploading the Admin Management site to",
         value: webHostingStack.adminAppBucketName,
-        exportName: "adminAppBucketName",
+        exportName: generateCfnExportName(
+          SystemProviderCfnOutputs.adminAppBucketName
+        ),
       },
     });
     createCfnOutputIfNotExists(this, {
-      id: "tenantAppBucketName",
+      id: generateLogicalId(
+        SystemProviderCfnOutputs.tenantAppBucketName,
+        tenantId
+      ),
       props: {
         description:
           "The name of the S3 Bucket for uploading the Tenant App(Main App) site to",
         value: webHostingStack.tenantAppBucketName,
-        exportName: "tenantAppBucketName",
+        exportName: generateCfnExportName(
+          SystemProviderCfnOutputs.tenantAppBucketName
+        ),
       },
     });
 
     createCfnOutputIfNotExists(this, {
-      id: "onBoardingAppBucketName",
+      id: generateLogicalId(
+        SystemProviderCfnOutputs.onBoardingAppBucketName,
+        tenantId
+      ),
       props: {
         description:
           "The name of the S3 Bucket for uploading the OnBoarding site to",
         value: webHostingStack.onBoardingAppBucketName,
-        exportName: "onBoardingAppBucketName",
+        exportName: generateCfnExportName(
+          SystemProviderCfnOutputs.onBoardingAppBucketName
+        ),
       },
     });
 
     createCfnOutputIfNotExists(this, {
-      id: "restApiId",
+      id: generateLogicalId(SystemProviderCfnOutputs.restApiId, tenantId),
       props: {
         value: apiStack.restApiId,
-        exportName: "restApiId",
+        exportName: generateCfnExportName(SystemProviderCfnOutputs.restApiId),
       },
     });
     createCfnOutputIfNotExists(this, {
-      id: "restApiIdStageName",
+      id: generateLogicalId(
+        SystemProviderCfnOutputs.restApiIdStageName,
+        tenantId
+      ),
       props: {
         value: apiStack.restApiIdStageName,
-        exportName: "restApiIdStageName",
+        exportName: generateCfnExportName(
+          SystemProviderCfnOutputs.restApiIdStageName
+        ),
       },
     });
 
     createCfnOutputIfNotExists(this, {
-      id: "cognitoOperationUsersUserPoolId",
+      id: generateLogicalId(
+        SystemProviderCfnOutputs.cognitoOperationUsersUserPoolId,
+        tenantId
+      ),
       props: {
         value: authStack.cognitoOperationUsersUserPoolId,
-        exportName: "cognitoOperationUsersUserPoolId",
+        exportName: generateCfnExportName(
+          SystemProviderCfnOutputs.cognitoOperationUsersUserPoolId
+        ),
       },
     });
     createCfnOutputIfNotExists(this, {
-      id: "cognitoOperationUsersUserPoolClientId",
+      id: generateLogicalId(
+        SystemProviderCfnOutputs.cognitoOperationUsersUserPoolClientId,
+        tenantId
+      ),
       props: {
         value: authStack.cognitoOperationUsersUserPoolClientId,
-        exportName: "cognitoOperationUsersUserPoolClientId",
+        exportName: generateCfnExportName(
+          SystemProviderCfnOutputs.cognitoOperationUsersUserPoolClientId
+        ),
       },
     });
     createCfnOutputIfNotExists(this, {
-      id: "stackRegion",
+      id: generateLogicalId(SystemProviderCfnOutputs.stackRegion, tenantId),
       props: {
         value: authStack.region,
-        exportName: "stackRegion",
+        exportName: generateCfnExportName(SystemProviderCfnOutputs.stackRegion),
       },
     });
     createCfnOutputIfNotExists(this, {
-      id: "adminCFDistributionId",
+      id: generateLogicalId(
+        SystemProviderCfnOutputs.adminCFDistributionId,
+        tenantId
+      ),
       props: {
         value: webHostingStack.adminDistributionId,
-        exportName: "adminCFDistributionId",
+        exportName: generateCfnExportName(
+          SystemProviderCfnOutputs.adminCFDistributionId
+        ),
       },
     });
     createCfnOutputIfNotExists(this, {
-      id: "tenantAppCFDistributionId",
+      id: generateLogicalId(
+        SystemProviderCfnOutputs.tenantAppCFDistributionId,
+        tenantId
+      ),
       props: {
         value: webHostingStack.tenantAppDistributionId,
-        exportName: "tenantAppCFDistributionId",
+        exportName: generateCfnExportName(
+          SystemProviderCfnOutputs.tenantAppCFDistributionId
+        ),
       },
     });
     createCfnOutputIfNotExists(this, {
-      id: "onBoardingAppCFDistributionId",
+      id: generateLogicalId(
+        SystemProviderCfnOutputs.onBoardingAppCFDistributionId,
+        tenantId
+      ),
       props: {
         value: webHostingStack.onBoardingAppDistributionId,
-        exportName: "onBoardingAppCFDistributionId",
+        exportName: generateCfnExportName(
+          SystemProviderCfnOutputs.onBoardingAppCFDistributionId
+        ),
       },
     });
   }

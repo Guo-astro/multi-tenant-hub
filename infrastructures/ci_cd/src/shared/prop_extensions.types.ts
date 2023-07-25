@@ -2,6 +2,7 @@ import { StackProps, NestedStackProps } from "aws-cdk-lib";
 import { Artifact, Pipeline } from "aws-cdk-lib/aws-codepipeline";
 import { Table } from "aws-cdk-lib/aws-dynamodb";
 import * as apigateway from "aws-cdk-lib/aws-apigateway";
+import { Repository } from "aws-cdk-lib/aws-ecr";
 
 type AllowedEnvs = "development" | "staging" | "production";
 
@@ -14,11 +15,17 @@ export type SaaSProviderStackProps = StackProps & {
     PATSSMKey: string;
   };
 };
+export type ECRStackProps = StackProps & {
+  tags: {
+    environment: AllowedEnvs;
+  };
+};
 
 export type SaaSProviderAdminUIDeploymentStackProps = NestedStackProps & {
   tags: {
     environment: AllowedEnvs;
   };
+  tenantId: "system";
 };
 
 export type AuthStackProps = StackProps & {
@@ -31,6 +38,7 @@ export type AuthStackProps = StackProps & {
   apiKeyOperationUsers: string;
   adminUserPoolCallbackURL: string;
   tenantUserPoolCallbackURL: string;
+  tenantId: string;
 };
 
 export type LambdaStackProps = NestedStackProps & {
@@ -62,6 +70,7 @@ export type LambdaStackProps = NestedStackProps & {
 
   tenantUserPoolCallbackURLParameter: string;
   lambdaCanaryDeploymentPreference: boolean;
+  tenantId: string;
 };
 
 export type DataStackProps = NestedStackProps & {
@@ -96,6 +105,7 @@ export type SaaSProviderAPILambdaPermissiontackProps = NestedStackProps & {
   enableUsersByTenantFunctionArn: string;
   authorizerFunctionArn: string;
   apiId: string;
+  tenantId: string;
 };
 
 export type SaaSProviderAPIStackProps = NestedStackProps & {
@@ -129,6 +139,7 @@ export type SaaSProviderAPIStackProps = NestedStackProps & {
   apiKeyPremiumTierParameter: string;
   apiKeyStandardTierParameter: string;
   apiKeyBasicTierParameter: string;
+  tenantId: string;
 };
 export type SaaSProviderCustomResourceStackProps = NestedStackProps & {
   tags: {
@@ -142,6 +153,7 @@ export type SaaSProviderCustomResourceStackProps = NestedStackProps & {
   updateTenantStackMapTableFunctionArn: string;
   cognitoUserPoolId: string;
   cognitoUserPoolClientId: string;
+  tenantId: string;
 };
 
 export type LambdaImageBuilderStackStackProps = StackProps & {
@@ -192,6 +204,8 @@ export type SystemProvisiongPipelineProps = StackProps & {
     environment: AllowedEnvs;
   };
   tenantProvisoningPipelineName: string;
+  lambdaECR: Repository;
+  lambdaLayerECR: Repository;
 };
 ////////////TenantStack///////////
 export type TenantDataStackProps = StackProps & {
@@ -211,7 +225,7 @@ export type TenantFunctionStackProps = StackProps & {
   lambdaCanaryDeploymentPreference: boolean;
   isPooledDeploy: string;
   lambdaReserveConcurrency: number;
-  systemProviderSettingsTableArn: string;
+  serverlessSaaSSettingsTableArn: string;
   tenantDetailsTableArn: string;
 };
 export type TenantApiStackProps = NestedStackProps & {
@@ -262,6 +276,7 @@ export type TenantApiLambdaPermissiontackProps = NestedStackProps & {
   deleteProductFunctionArn: string;
   authorizerFunctionArn: string;
   tenantApiId: string;
+  tenantId: string;
 };
 
 export type TenantCustomResourceStackProps = NestedStackProps & {

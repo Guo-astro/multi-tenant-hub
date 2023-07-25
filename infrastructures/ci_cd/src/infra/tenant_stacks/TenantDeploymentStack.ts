@@ -1,23 +1,33 @@
 import * as cdk from "aws-cdk-lib";
 import { Construct } from "constructs";
 
-import { TenantDeploymentStackProps } from "shared/prop_extensions.types";
+import { TenantDeploymentStackProps } from "@/shared/prop_extensions.types";
 import { TenantDataStack } from "./TenantDataStack";
 import { TenantLambdaStack } from "./TenantLambdaStack";
 import { TenantApiStack } from "./TenantApiStack";
 import { TenantApigwLambdaPermissionStack } from "./TenantApigwLambdaPermissionStack";
 import { TenantCustomResourceStack } from "./TenantCustomResourceStack";
+import {
+  createCfnOutputIfNotExists,
+  generateLogicalId,
+  generatePhysicalName,
+} from "../utils/Utils";
+import { TenantSystemNameDict } from "@/shared/Constants";
 export class TenantDeploymentStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: TenantDeploymentStackProps) {
     super(scope, id, props);
-    //TODO :doc it. the same as lambda handler
-    const tenanIdCfnParam = new cdk.CfnParameter(this, "tenanIdCfnParam", {
-      type: "String",
-      description: "This is tenantId",
-    });
+    let tenanIdCfnParam = new cdk.CfnParameter(
+      this,
+      TenantSystemNameDict.tenanIdCfnParam,
+      {
+        type: "String",
+        description: "This is tenantId",
+      }
+    );
+
     const systemSettingsTableArnCfnParam = new cdk.CfnParameter(
       this,
-      "systemSettingsTableArnCfnParam",
+      TenantSystemNameDict.systemSettingsTableArnCfnParam,
       {
         type: "String",
         description: "The ARN of the system settings table",
@@ -26,7 +36,7 @@ export class TenantDeploymentStack extends cdk.Stack {
 
     const authorizerFunctionArnCfnParam = new cdk.CfnParameter(
       this,
-      "authorizerFunctionArnCfnParam",
+      TenantSystemNameDict.authorizerFunctionArnCfnParam,
       {
         type: "String",
         description: "The ARN of the authorizer function",
@@ -35,7 +45,7 @@ export class TenantDeploymentStack extends cdk.Stack {
 
     const systemProviderSettingsTableNameCfnParam = new cdk.CfnParameter(
       this,
-      "systemProviderSettingsTableNameCfnParam",
+      TenantSystemNameDict.systemProviderSettingsTableNameCfnParam,
       {
         type: "String",
         description: "The name of the system provider settings table",
@@ -44,7 +54,7 @@ export class TenantDeploymentStack extends cdk.Stack {
 
     const tenantDetailsTableNameCfnParam = new cdk.CfnParameter(
       this,
-      "tenantDetailsTableNameCfnParam",
+      TenantSystemNameDict.tenantDetailsTableNameCfnParam,
       {
         type: "String",
         description: "The name of the tenant details table",
@@ -52,7 +62,7 @@ export class TenantDeploymentStack extends cdk.Stack {
     );
     const tenantDetailsTableArnCfnParam = new cdk.CfnParameter(
       this,
-      "tenantDetailsTableArnCfnParam",
+      TenantSystemNameDict.tenantDetailsTableArnCfnParam,
       {
         type: "String",
         description: "The name of the tenant details table",
@@ -61,7 +71,7 @@ export class TenantDeploymentStack extends cdk.Stack {
 
     const usagePlanBasicTierIdCfnParam = new cdk.CfnParameter(
       this,
-      "usagePlanBasicTierIdCfnParam",
+      TenantSystemNameDict.usagePlanBasicTierIdCfnParam,
       {
         type: "String",
         description: "The ID of the basic tier usage plan",
@@ -70,7 +80,7 @@ export class TenantDeploymentStack extends cdk.Stack {
 
     const usagePlanStandardTierIdCfnParam = new cdk.CfnParameter(
       this,
-      "usagePlanStandardTierIdCfnParam",
+      TenantSystemNameDict.usagePlanStandardTierIdCfnParam,
       {
         type: "String",
         description: "The ID of the standard tier usage plan",
@@ -79,7 +89,7 @@ export class TenantDeploymentStack extends cdk.Stack {
 
     const usagePlanPremiumTierIdCfnParam = new cdk.CfnParameter(
       this,
-      "usagePlanPremiumTierIdCfnParam",
+      TenantSystemNameDict.usagePlanPremiumTierIdCfnParam,
       {
         type: "String",
         description: "The ID of the premium tier usage plan",
@@ -88,14 +98,15 @@ export class TenantDeploymentStack extends cdk.Stack {
 
     const usagePlanPlatinumTierIdCfnParam = new cdk.CfnParameter(
       this,
-      "usagePlanPlatinumTierIdCfnParam",
+      TenantSystemNameDict.usagePlanPlatinumTierIdCfnParam,
       {
         type: "String",
         description: "The ID of the platinum tier usage plan",
       }
     );
-
+    //TODO: doc it
     const tenantId = tenanIdCfnParam.valueAsString;
+
     const systemSettingsTableArn = systemSettingsTableArnCfnParam.valueAsString;
     const authorizerFunctionArn = authorizerFunctionArnCfnParam.valueAsString;
     const systemProviderSettingsTableName =
@@ -112,54 +123,76 @@ export class TenantDeploymentStack extends cdk.Stack {
     const tenantDetailsTableArn = tenantDetailsTableArnCfnParam.valueAsString;
     const stageName = props.tags.environment;
     const isPooledDeploy = tenantId === "pooled" ? "True" : "False";
-    const tenantDataStack = new TenantDataStack(this, "tenantDataStack", {
-      tags: {
-        environment: stageName,
-      },
-      tenantId: tenantId,
-    });
-
-    const tenantFunctionStack = new TenantLambdaStack(
+    const tenantCatagory = tenantId;
+    const tenantDataStack = new TenantDataStack(
       this,
-      "tenantFunctionStack",
+      generateLogicalId(TenantSystemNameDict.dataStack, tenantCatagory),
       {
         tags: {
           environment: stageName,
         },
-        tenantId: tenantId,
+        tenantId: tenantCatagory,
+      }
+    );
+
+    const tenantFunctionStack = new TenantLambdaStack(
+      this,
+      generateLogicalId(TenantSystemNameDict.funcStack, tenantCatagory),
+      {
+        tags: {
+          environment: stageName,
+        },
+        tenantId: tenantCatagory,
         lambdaReserveConcurrency: 20,
         lambdaCanaryDeploymentPreference: true,
         orderTable: tenantDataStack.orderTable,
         productTable: tenantDataStack.productTable,
         isPooledDeploy: isPooledDeploy,
-        systemProviderSettingsTableArn: systemSettingsTableArn,
+        serverlessSaaSSettingsTableArn: systemSettingsTableArn,
         tenantDetailsTableArn: tenantDetailsTableArn,
       }
     );
 
-    const tenantApiStack = new TenantApiStack(this, "tenantApiStack", {
-      tags: {
-        environment: stageName,
+    const tenantApiStack = new TenantApiStack(
+      this,
+      generateLogicalId(TenantSystemNameDict.apigwStack, tenantCatagory),
+      {
+        tags: {
+          environment: stageName,
+        },
+        stageName: stageName,
+        tenantId: tenantCatagory,
+        getOrderFunctionArn: tenantFunctionStack.getOrderFunctionArn,
+        createOrderFunctionArn: tenantFunctionStack.createOrderFunctionArn,
+        getOrdersFunctionArn: tenantFunctionStack.getOrdersFunctionArn,
+        getProductFunctionArn: tenantFunctionStack.getProductFunctionArn,
+        createProductFunctionArn: tenantFunctionStack.createProductFunctionArn,
+        getProductsFunctionArn: tenantFunctionStack.getProductsFunctionArn,
+        updateOrderFunctionArn: tenantFunctionStack.updateOrderFunctionArn,
+        deleteOrderFunctionArn: tenantFunctionStack.deleteOrderFunctionArn,
+        updateProductFunctionArn: tenantFunctionStack.updateProductFunctionArn,
+        deleteProductFunctionArn: tenantFunctionStack.deleteProductFunctionArn,
+        authorizerFunctionArn: authorizerFunctionArn,
+      }
+    );
+    createCfnOutputIfNotExists(this, {
+      id: generateLogicalId(TenantSystemNameDict.apigwUrl, tenantCatagory),
+      props: {
+        exportName: generatePhysicalName(
+          TenantSystemNameDict.apigwUrl,
+          tenantCatagory
+        ),
+        value: `https://${tenantApiStack.restApiId}.execute-api.${cdk.Aws.REGION}.amazonaws.com/${tenantApiStack.restApiIdStageName}/`,
       },
-      stageName: stageName,
-      tenantId: tenantId,
-      getOrderFunctionArn: tenantFunctionStack.getOrderFunctionArn,
-      createOrderFunctionArn: tenantFunctionStack.createOrderFunctionArn,
-      getOrdersFunctionArn: tenantFunctionStack.getOrdersFunctionArn,
-      getProductFunctionArn: tenantFunctionStack.getProductFunctionArn,
-      createProductFunctionArn: tenantFunctionStack.createProductFunctionArn,
-      getProductsFunctionArn: tenantFunctionStack.getProductsFunctionArn,
-      updateOrderFunctionArn: tenantFunctionStack.updateOrderFunctionArn,
-      deleteOrderFunctionArn: tenantFunctionStack.deleteOrderFunctionArn,
-      updateProductFunctionArn: tenantFunctionStack.updateProductFunctionArn,
-      deleteProductFunctionArn: tenantFunctionStack.deleteProductFunctionArn,
-      authorizerFunctionArn: authorizerFunctionArn,
     });
 
     const tenantApigwLambdaPermissionStack =
       new TenantApigwLambdaPermissionStack(
         this,
-        "tenantApigwLambdaPermissionStack",
+        generateLogicalId(
+          TenantSystemNameDict.apigwPermissonStack,
+          tenantCatagory
+        ),
         {
           tags: {
             environment: stageName,
@@ -179,17 +212,18 @@ export class TenantDeploymentStack extends cdk.Stack {
             tenantFunctionStack.deleteProductFunctionArn,
           authorizerFunctionArn: authorizerFunctionArn,
           tenantApiId: tenantApiStack.restApiId,
+          tenantId: tenantCatagory,
         }
       );
 
     const tenantCustomResourceStack = new TenantCustomResourceStack(
       this,
-      "tenantCustomResourceStack",
+      generateLogicalId(TenantSystemNameDict.customResource, tenantCatagory),
       {
         tags: {
           environment: stageName,
         },
-        tenantId: tenantId,
+        tenantId: tenantCatagory,
         updateUsagePlanFunctionArn:
           tenantFunctionStack.updateUsagePlanFunctionArn,
         updateTenantApiGatewayUrlFunctionArn:
@@ -209,10 +243,13 @@ export class TenantDeploymentStack extends cdk.Stack {
     tenantApiStack.addDependency(tenantFunctionStack);
     tenantApigwLambdaPermissionStack.addDependency(tenantFunctionStack);
     tenantCustomResourceStack.addDependency(tenantApigwLambdaPermissionStack);
-    cdk.Tags.of(tenantDataStack).add("TenantId", tenantId);
-    cdk.Tags.of(tenantFunctionStack).add("TenantId", tenantId);
-    cdk.Tags.of(tenantApiStack).add("TenantId", tenantId);
-    cdk.Tags.of(tenantApigwLambdaPermissionStack).add("TenantId", tenantId);
-    cdk.Tags.of(tenantCustomResourceStack).add("TenantId", tenantId);
+    cdk.Tags.of(tenantDataStack).add("TenantId", tenantCatagory);
+    cdk.Tags.of(tenantFunctionStack).add("TenantId", tenantCatagory);
+    cdk.Tags.of(tenantApiStack).add("TenantId", tenantCatagory);
+    cdk.Tags.of(tenantApigwLambdaPermissionStack).add(
+      "TenantId",
+      tenantCatagory
+    );
+    cdk.Tags.of(tenantCustomResourceStack).add("TenantId", tenantCatagory);
   }
 }

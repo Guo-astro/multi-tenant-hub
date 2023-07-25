@@ -6,22 +6,33 @@ import * as codepipeline_actions from "aws-cdk-lib/aws-codepipeline-actions";
 import * as codebuild from "aws-cdk-lib/aws-codebuild";
 import * as codepipeline from "aws-cdk-lib/aws-codepipeline";
 import * as ecr from "aws-cdk-lib/aws-ecr";
-import { SystemProvisiongPipelineProps } from "shared/prop_extensions.types";
+import { SystemProvisiongPipelineProps } from "@/shared/prop_extensions.types";
+import {
+  SystemProviderCfnOutputs,
+  SystemProviderInfraStackNameDict,
+  SystemProviderProvisioningPipelineNameDict,
+  TenantProvisioningPipelineNameDict,
+  TenantSystemNameDict,
+} from "@/shared/Constants";
+import { generateLogicalId, generatePhysicalName } from "./utils/Utils";
 
 export class SystemProvisiongPipeline extends cdk.Stack {
-  public readonly lambdaEcrRepositoryUri: string;
+  cdkBuildOutput: cdk.aws_codepipeline.Artifact;
   constructor(
     scope: Construct,
     id: string,
     props: SystemProvisiongPipelineProps
   ) {
     super(scope, id, props);
+    const stage = props.tags.environment;
+    const lambdaECR = props.lambdaECR;
+    const lambdaLayerECR = props.lambdaLayerECR;
     const githubPATName = "dev/multi-tenant-saas";
     const githubAccessToken = SecretValue.secretsManager(githubPATName);
     const owner = "Guo-astro";
     const repo = "multi-tenant-hub";
     const branch = "main";
-
+    const tenantId = "system";
     const sourceOutput = new codepipeline.Artifact();
     const lambdaLayerBuildOutput = new codepipeline.Artifact();
     const lambdaBuildOutput = new codepipeline.Artifact();
@@ -34,8 +45,67 @@ export class SystemProvisiongPipeline extends cdk.Stack {
       oauthToken: githubAccessToken,
       output: sourceOutput,
     });
+    this.cdkBuildOutput = new codepipeline.Artifact("pipeline-cdk-build");
+    const pipeline_update_action_buildspec = {
+      version: "0.2",
+      env: {
+        variables: {
+          VOLTA_HOME: "/root/.volta",
+        },
+      },
+      artifacts: {
+        files: ["./infrastructures/ci_cd/cdk.out/*"],
+        name: "pipeline-build-artifacts",
+      },
+      phases: {
+        pre_build: {
+          commands: [
+            "COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)",
+            "IMAGE_TAG=${COMMIT_HASH:=latest}",
+          ],
+        },
+        build: {
+          commands: [
+            "curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add -",
+            "apt-get update && apt-get install -y jq",
+            "curl https://get.volta.sh | bash",
+            'export PATH="$VOLTA_HOME/bin:$PATH"',
+            `volta install node@16.16.0`,
+            `volta pin node@16.16.0`,
+            `which npm`,
+            `npm install -g pnpm`,
+            `ls -al ..`,
+            `ls -al`,
+            `ls -al /root`,
+            `ls -al /root/.volta`,
+            `ls -al /root/.volta/bin`,
+            `echo $PATH`,
+            `export PATH="$NPM_BIN:$PATH"`,
+            `echo $PATH`,
+            `cd ./infrastructures/ci_cd`,
+            `pnpm i`,
+            `pnpm run cdk -- synth ${SystemProviderInfraStackNameDict.systemProviderInfraStack} --method=direct --require-approval never`,
+          ],
+        },
+      },
+    };
+
+    const pipeline_update_action = new codepipeline_actions.CodeBuildAction({
+      actionName: "pipeline-update",
+      input: sourceOutput,
+      outputs: [this.cdkBuildOutput],
+      project: new codebuild.PipelineProject(this, "CdkBuildProject", {
+        environment: {
+          buildImage: codebuild.LinuxBuildImage.STANDARD_7_0,
+          privileged: true,
+        },
+        buildSpec: codebuild.BuildSpec.fromObject(
+          pipeline_update_action_buildspec
+        ),
+      }),
+    });
+
     //////////////////Build python lambda layer////////////////////
-    const lambdaLayerECR = new ecr.Repository(this, "pylayer");
     const buildspec_lambda_layer_docker_path =
       "infrastructures/ci_cd/src/infra/service_provider_stacks/buildspec_lambda_layer_docker.yml";
 
@@ -86,10 +156,6 @@ export class SystemProvisiongPipeline extends cdk.Stack {
 
     //////////////////Build python lambda layer////////////////////
     //////////////////Build python lambda////////////////////
-
-    const lambdaECR = new ecr.Repository(this, "multi_tenant_hub_lambda");
-    // Create the assumed role
-    this.lambdaEcrRepositoryUri = lambdaECR.repositoryUri;
 
     const lambdaBuildProjectAssumedRole = new iam.Role(
       this,
@@ -170,23 +236,250 @@ export class SystemProvisiongPipeline extends cdk.Stack {
     /////////// Build python lambda ///////////
 
     /////////// Deployment ///////////
-    const buildspec_infra_deployment_path =
-      "infrastructures/ci_cd/src/infra/service_provider_stacks/buildspec_infra_deployment.yml";
+    const buildspec = {
+      version: "0.2",
+      env: {
+        variables: {
+          VOLTA_HOME: "/root/.volta",
+        },
+        "exported-variables": [
+          `${SystemProviderCfnOutputs.tenantAppBucketName}`,
+          `${SystemProviderCfnOutputs.onBoardingAppCFDistributionId}`,
+          `${SystemProviderCfnOutputs.tenantAppCFDistributionId}`,
+          `${SystemProviderCfnOutputs.adminCFDistributionId}`,
+          `${SystemProviderCfnOutputs.restApiId}`,
+          `${SystemProviderCfnOutputs.stackRegion}`,
+          `${SystemProviderCfnOutputs.restApiIdStageName}`,
+          `${SystemProviderCfnOutputs.cognitoOperationUsersUserPoolId}`,
+          `${SystemProviderCfnOutputs.cognitoOperationUsersUserPoolClientId}`,
+          `${SystemProviderCfnOutputs.onBoardingAppBucketName}`,
+          `${SystemProviderCfnOutputs.adminAppBucketName}`,
+          `${SystemProviderCfnOutputs.serverlessSaaSSettingsTableArn}`,
+          `${SystemProviderCfnOutputs.serverlessSaaSSettingsTableName}`,
+          `${SystemProviderCfnOutputs.tenantStackMappingTableArn}`,
+          `${SystemProviderCfnOutputs.tenantStackMappingTableName}`,
+          `${SystemProviderCfnOutputs.tenantDetailsTableArn}`,
+          `${SystemProviderCfnOutputs.tenantDetailsTableName}`,
+          `${SystemProviderCfnOutputs.tenantUserMappingTableArn}`,
+          `${SystemProviderCfnOutputs.tenantUserMappingTableName}`,
+        ],
+      },
+      phases: {
+        pre_build: {
+          commands: [
+            "COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)",
+            "IMAGE_TAG=${COMMIT_HASH:=latest}",
+          ],
+        },
+        build: {
+          commands: [
+            "curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add -",
+            "apt-get update && apt-get install -y jq",
+            "curl https://get.volta.sh | bash",
+            'export PATH="$VOLTA_HOME/bin:$PATH"',
+            `volta install node@16.16.0`,
+            `volta pin node@16.16.0`,
+            `which npm`,
+            `npm install -g pnpm`,
+            `ls -al ..`,
+            `ls -al`,
+            `ls -al /root`,
+            `ls -al /root/.volta`,
+            `ls -al /root/.volta/bin`,
+            `echo $PATH`,
+            `export PATH="$NPM_BIN:$PATH"`,
+            `echo $PATH`,
+            `cd ./infrastructures/ci_cd`,
+            `pnpm i`,
+            `pnpx cdk deploy ${SystemProviderInfraStackNameDict.systemProviderInfraStack} --method=direct --require-approval never --outputs-file outputs.json -c ${SystemProviderInfraStackNameDict.lambdaImageTag}=$IMAGE_TAG -c ${TenantProvisioningPipelineNameDict.tenantProvisiongPipelineName}=$${TenantProvisioningPipelineNameDict.tenantProvisiongPipelineName}`,
+            `ls -al`,
+            `jq '.' outputs.json`,
+            `export ${
+              SystemProviderCfnOutputs.onBoardingAppBucketName
+            }=$(jq -r '.${
+              SystemProviderInfraStackNameDict.systemProviderInfraStack
+            }.${generateLogicalId(
+              SystemProviderCfnOutputs.onBoardingAppBucketName,
+              tenantId
+            )} // empty' ./outputs.json)`,
+            `export ${SystemProviderCfnOutputs.tenantAppBucketName}=$(jq -r '.${
+              SystemProviderInfraStackNameDict.systemProviderInfraStack
+            }.${generateLogicalId(
+              SystemProviderCfnOutputs.tenantAppBucketName,
+              tenantId
+            )} // empty' ./outputs.json)`,
+            `export ${SystemProviderCfnOutputs.adminAppBucketName}=$(jq -r '.${
+              SystemProviderInfraStackNameDict.systemProviderInfraStack
+            }.${generateLogicalId(
+              SystemProviderCfnOutputs.adminAppBucketName,
+              tenantId
+            )} // empty' ./outputs.json)`,
+            `export ${
+              SystemProviderCfnOutputs.onBoardingAppCFDistributionId
+            }=$(jq -r '.${
+              SystemProviderInfraStackNameDict.systemProviderInfraStack
+            }.${generateLogicalId(
+              SystemProviderCfnOutputs.onBoardingAppCFDistributionId,
+              tenantId
+            )} // empty' ./outputs.json)`,
+            `export ${
+              SystemProviderCfnOutputs.adminCFDistributionId
+            }=$(jq -r '.${
+              SystemProviderInfraStackNameDict.systemProviderInfraStack
+            }.${generateLogicalId(
+              SystemProviderCfnOutputs.adminCFDistributionId,
+              tenantId
+            )} // empty' ./outputs.json)`,
+            `export ${
+              SystemProviderCfnOutputs.tenantAppCFDistributionId
+            }=$(jq -r '.${
+              SystemProviderInfraStackNameDict.systemProviderInfraStack
+            }.${generateLogicalId(
+              SystemProviderCfnOutputs.tenantAppCFDistributionId,
+              tenantId
+            )} // empty' ./outputs.json)`,
+            `export ${SystemProviderCfnOutputs.restApiId}=$(jq -r '.${
+              SystemProviderInfraStackNameDict.systemProviderInfraStack
+            }.${generateLogicalId(
+              SystemProviderCfnOutputs.restApiId,
+              tenantId
+            )} // empty' ./outputs.json)`,
+            `export ${SystemProviderCfnOutputs.stackRegion}=$(jq -r '.${
+              SystemProviderInfraStackNameDict.systemProviderInfraStack
+            }.${generateLogicalId(
+              SystemProviderCfnOutputs.stackRegion,
+              tenantId
+            )} // empty' ./outputs.json)`,
+            `export ${SystemProviderCfnOutputs.restApiIdStageName}=$(jq -r '.${
+              SystemProviderInfraStackNameDict.systemProviderInfraStack
+            }.${generateLogicalId(
+              SystemProviderCfnOutputs.restApiIdStageName,
+              tenantId
+            )} // empty' ./outputs.json)`,
+            `export ${
+              SystemProviderCfnOutputs.cognitoOperationUsersUserPoolId
+            }=$(jq -r '.${
+              SystemProviderInfraStackNameDict.systemProviderInfraStack
+            }.${generateLogicalId(
+              SystemProviderCfnOutputs.cognitoOperationUsersUserPoolId,
+              tenantId
+            )} // empty' ./outputs.json)`,
+            `export ${
+              SystemProviderCfnOutputs.cognitoOperationUsersUserPoolClientId
+            }=$(jq -r '.${
+              SystemProviderInfraStackNameDict.systemProviderInfraStack
+            }.${generateLogicalId(
+              SystemProviderCfnOutputs.cognitoOperationUsersUserPoolClientId,
+              tenantId
+            )} // empty' ./outputs.json)`,
+            `export ${
+              SystemProviderCfnOutputs.serverlessSaaSSettingsTableArn
+            }=$(jq -r '.${
+              SystemProviderInfraStackNameDict.systemProviderInfraStack
+            }.${generateLogicalId(
+              SystemProviderCfnOutputs.serverlessSaaSSettingsTableArn,
+              tenantId
+            )} // empty' ./outputs.json)`,
+            `export ${
+              SystemProviderCfnOutputs.serverlessSaaSSettingsTableName
+            }=$(jq -r '.${
+              SystemProviderInfraStackNameDict.systemProviderInfraStack
+            }.${generateLogicalId(
+              SystemProviderCfnOutputs.serverlessSaaSSettingsTableName,
+              tenantId
+            )} // empty' ./outputs.json)`,
+            `export ${
+              SystemProviderCfnOutputs.tenantStackMappingTableArn
+            }=$(jq -r '.${
+              SystemProviderInfraStackNameDict.systemProviderInfraStack
+            }.${generateLogicalId(
+              SystemProviderCfnOutputs.tenantStackMappingTableArn,
+              tenantId
+            )} // empty' ./outputs.json)`,
+            `export ${
+              SystemProviderCfnOutputs.tenantStackMappingTableName
+            }=$(jq -r '.${
+              SystemProviderInfraStackNameDict.systemProviderInfraStack
+            }.${generateLogicalId(
+              SystemProviderCfnOutputs.tenantStackMappingTableName,
+              tenantId
+            )} // empty' ./outputs.json)`,
+            `export ${
+              SystemProviderCfnOutputs.tenantDetailsTableArn
+            }=$(jq -r '.${
+              SystemProviderInfraStackNameDict.systemProviderInfraStack
+            }.${generateLogicalId(
+              SystemProviderCfnOutputs.tenantDetailsTableArn,
+              tenantId
+            )} // empty' ./outputs.json)`,
+            `export ${
+              SystemProviderCfnOutputs.tenantDetailsTableName
+            }=$(jq -r '.${
+              SystemProviderInfraStackNameDict.systemProviderInfraStack
+            }.${generateLogicalId(
+              SystemProviderCfnOutputs.tenantDetailsTableName,
+              tenantId
+            )} // empty' ./outputs.json)`,
+            `export ${
+              SystemProviderCfnOutputs.tenantUserMappingTableArn
+            }=$(jq -r '.${
+              SystemProviderInfraStackNameDict.systemProviderInfraStack
+            }.${generateLogicalId(
+              SystemProviderCfnOutputs.tenantUserMappingTableArn,
+              tenantId
+            )} // empty' ./outputs.json)`,
+            `export ${
+              SystemProviderCfnOutputs.tenantUserMappingTableName
+            }=$(jq -r '.${
+              SystemProviderInfraStackNameDict.systemProviderInfraStack
+            }.${generateLogicalId(
+              SystemProviderCfnOutputs.tenantUserMappingTableName,
+              tenantId
+            )} // empty' ./outputs.json)`,
+
+            `echo $${SystemProviderCfnOutputs.adminAppBucketName}`,
+            `echo $${SystemProviderCfnOutputs.restApiId}`,
+            `echo $${SystemProviderCfnOutputs.stackRegion}`,
+            `echo $${SystemProviderCfnOutputs.tenantAppBucketName}`,
+            `echo $${SystemProviderCfnOutputs.onBoardingAppBucketName}`,
+            `echo $${SystemProviderCfnOutputs.onBoardingAppCFDistributionId}`,
+            `echo $${SystemProviderCfnOutputs.tenantAppCFDistributionId}`,
+            `echo $${SystemProviderCfnOutputs.adminCFDistributionId}`,
+            `echo $${SystemProviderCfnOutputs.restApiIdStageName}`,
+            `echo $${SystemProviderCfnOutputs.cognitoOperationUsersUserPoolId}`,
+            `echo $${SystemProviderCfnOutputs.cognitoOperationUsersUserPoolClientId}`,
+            `echo $IMAGE_TAG`,
+            `echo $COMMIT_HASH`,
+            `echo $${SystemProviderCfnOutputs.serverlessSaaSSettingsTableArn}`,
+            `echo $${SystemProviderCfnOutputs.serverlessSaaSSettingsTableName}`,
+            `echo $${SystemProviderCfnOutputs.tenantStackMappingTableArn}`,
+            `echo $${SystemProviderCfnOutputs.tenantStackMappingTableName}`,
+            `echo $${SystemProviderCfnOutputs.tenantDetailsTableArn}`,
+            `echo $${SystemProviderCfnOutputs.tenantDetailsTableName}`,
+            `echo $${SystemProviderCfnOutputs.tenantUserMappingTableArn}`,
+            `echo $${SystemProviderCfnOutputs.tenantUserMappingTableName}`,
+            `pnpx cdk deploy ${TenantProvisioningPipelineNameDict.tenantProvisiongPipelineName} --method=direct --require-approval never --outputs-file  ${TenantProvisioningPipelineNameDict.tenantProvisiongPipelineName}.json`,
+            `jq '.'  ${TenantProvisioningPipelineNameDict.tenantProvisiongPipelineName}.json`,
+          ],
+        },
+      },
+    };
+
     const infraDeploymentProject = new codebuild.PipelineProject(
       this,
       "DeployProject",
       {
         environmentVariables: {
-          tenantProvisiongPipelineName: {
+          [TenantProvisioningPipelineNameDict.tenantProvisiongPipelineName]: {
             value: props.tenantProvisoningPipelineName,
           },
         },
         environment: {
           buildImage: codebuild.LinuxBuildImage.STANDARD_7_0,
+          privileged: true,
+          computeType: codebuild.ComputeType.MEDIUM,
         },
-        buildSpec: codebuild.BuildSpec.fromSourceFilename(
-          buildspec_infra_deployment_path
-        ),
+        buildSpec: codebuild.BuildSpec.fromObject(buildspec),
       }
     );
 
@@ -270,30 +563,36 @@ export class SystemProvisiongPipeline extends cdk.Stack {
     const adminAppDeploymentAction = new codepipeline_actions.CodeBuildAction({
       environmentVariables: {
         ADMIN_SITE_BUCKET: {
-          value: infraDeploymentAction.variable("adminAppBucketName"),
+          value: infraDeploymentAction.variable(
+            SystemProviderCfnOutputs.adminAppBucketName
+          ),
         },
         ADMIN_APIGATEWAYURL: {
           value: `https://${infraDeploymentAction.variable(
-            "restApiId"
+            SystemProviderCfnOutputs.restApiId
           )}.execute-api.${infraDeploymentAction.variable(
-            "stackRegion"
-          )}.amazonaws.com/prod`,
+            SystemProviderCfnOutputs.stackRegion
+          )}.amazonaws.com/${stage}`,
         },
         ADMIN_USERPOOLID: {
           value: infraDeploymentAction.variable(
-            "cognitoOperationUsersUserPoolId"
+            SystemProviderCfnOutputs.cognitoOperationUsersUserPoolId
           ),
         },
         ADMIN_APPCLIENTID: {
           value: infraDeploymentAction.variable(
-            "cognitoOperationUsersUserPoolClientId"
+            SystemProviderCfnOutputs.cognitoOperationUsersUserPoolClientId
           ),
         },
         REGION: {
-          value: infraDeploymentAction.variable("stackRegion"),
+          value: infraDeploymentAction.variable(
+            SystemProviderCfnOutputs.stackRegion
+          ),
         },
         ADMIN_DISTRIBUTION_ID: {
-          value: infraDeploymentAction.variable("adminDistributionId"),
+          value: infraDeploymentAction.variable(
+            SystemProviderCfnOutputs.adminCFDistributionId
+          ),
         },
       },
       actionName: "DeployAdminFrontEnd",
@@ -350,21 +649,27 @@ export class SystemProvisiongPipeline extends cdk.Stack {
     const tenantAppDeploymentAction = new codepipeline_actions.CodeBuildAction({
       environmentVariables: {
         APP_SITE_BUCKET: {
-          value: infraDeploymentAction.variable("tenantAppBucketName"),
+          value: infraDeploymentAction.variable(
+            SystemProviderCfnOutputs.tenantAppBucketName
+          ),
         },
         ADMIN_APIGATEWAYURL: {
           value: `https://${infraDeploymentAction.variable(
-            "restApiId"
+            SystemProviderCfnOutputs.restApiId
           )}.execute-api.${infraDeploymentAction.variable(
-            "stackRegion"
-          )}.amazonaws.com/prod`,
+            SystemProviderCfnOutputs.stackRegion
+          )}.amazonaws.com/${stage}`,
         },
 
         REGION: {
-          value: infraDeploymentAction.variable("stackRegion"),
+          value: infraDeploymentAction.variable(
+            SystemProviderCfnOutputs.stackRegion
+          ),
         },
         APP_DISTRIBUTION_ID: {
-          value: infraDeploymentAction.variable("tenantAppDistributionId"),
+          value: infraDeploymentAction.variable(
+            SystemProviderCfnOutputs.tenantAppCFDistributionId
+          ),
         },
       },
       actionName: "DeployTenantAppFrontEnd",
@@ -425,22 +730,26 @@ export class SystemProvisiongPipeline extends cdk.Stack {
       new codepipeline_actions.CodeBuildAction({
         environmentVariables: {
           ONBOARDING_SITE_BUCKET: {
-            value: infraDeploymentAction.variable("onBoardingAppBucketName"),
+            value: infraDeploymentAction.variable(
+              SystemProviderCfnOutputs.onBoardingAppBucketName
+            ),
           },
           ADMIN_APIGATEWAYURL: {
             value: `https://${infraDeploymentAction.variable(
-              "restApiId"
+              SystemProviderCfnOutputs.restApiId
             )}.execute-api.${infraDeploymentAction.variable(
-              "stackRegion"
-            )}.amazonaws.com/prod`,
+              SystemProviderCfnOutputs.stackRegion
+            )}.amazonaws.com/${stage}`,
           },
 
           REGION: {
-            value: infraDeploymentAction.variable("stackRegion"),
+            value: infraDeploymentAction.variable(
+              SystemProviderCfnOutputs.stackRegion
+            ),
           },
           ONBOARDING_DISTRIBUTION_ID: {
             value: infraDeploymentAction.variable(
-              "onBoardingAppDistributionId"
+              SystemProviderCfnOutputs.onBoardingAppCFDistributionId
             ),
           },
         },
@@ -449,40 +758,68 @@ export class SystemProvisiongPipeline extends cdk.Stack {
         input: sourceOutput,
       });
 
-    const pipeline = new codepipeline.Pipeline(this, "AwesomePipeline", {
-      pipelineName: "AwesomePipeline",
-      stages: [
-        {
-          stageName: "Source",
-          actions: [sourceAction],
-        },
+    const pipeline = new codepipeline.Pipeline(
+      this,
+      generateLogicalId(
+        SystemProviderProvisioningPipelineNameDict.systemProviderProvisiongPipelineName
+      ),
+      {
+        pipelineName:
+          SystemProviderProvisioningPipelineNameDict.systemProviderProvisiongPipelineName,
 
-        {
-          stageName: "lambda-layer-build",
-          actions: [lambdaLayerBuildAction],
-        },
-        {
-          stageName: "lambda-build",
-          actions: [lambdaBuildAction],
-        },
-        {
-          stageName: "infraDeployment",
-          actions: [infraDeploymentAction],
-        },
-        {
-          stageName: "adminAppDeployment",
-          actions: [adminAppDeploymentAction],
-        },
-        {
-          stageName: "tenantAppDeployment",
-          actions: [tenantAppDeploymentAction],
-        },
-        {
-          stageName: "onBoardingAppDeployment",
-          actions: [onBoardingAppDeploymentAction],
-        },
-      ],
-    });
+        crossAccountKeys: false,
+        restartExecutionOnUpdate: true,
+        stages: [
+          {
+            stageName: "Source",
+            actions: [sourceAction],
+          },
+          {
+            stageName: "pipeline-build",
+            actions: [pipeline_update_action],
+          },
+          {
+            stageName: "pipeline-transform",
+            actions: [
+              new codepipeline_actions.CloudFormationCreateUpdateStackAction({
+                actionName: "Pipeline_Update",
+                stackName:
+                  SystemProviderProvisioningPipelineNameDict.systemProviderProvisiongPipelineName,
+
+                templatePath: this.cdkBuildOutput.atPath(
+                  `infrastructures/ci_cd/cdk.out/systemProvisioningPipeline.template.json`
+                ),
+                adminPermissions: true,
+              }),
+            ],
+          },
+          {
+            stageName: "lambda-layer-build",
+            actions: [lambdaLayerBuildAction],
+          },
+          {
+            stageName: "lambda-build",
+            actions: [lambdaBuildAction],
+          },
+          {
+            stageName: "infraDeployment",
+            actions: [infraDeploymentAction],
+          },
+          {
+            stageName: "adminAppDeployment",
+            actions: [adminAppDeploymentAction],
+          },
+          {
+            stageName: "tenantAppDeployment",
+            actions: [tenantAppDeploymentAction],
+          },
+          {
+            stageName: "onBoardingAppDeployment",
+            actions: [onBoardingAppDeploymentAction],
+          },
+        ],
+      }
+    );
     ////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////

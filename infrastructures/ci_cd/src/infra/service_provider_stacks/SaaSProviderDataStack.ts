@@ -1,8 +1,7 @@
-import { NestedStack } from "aws-cdk-lib";
+import { NestedStack, RemovalPolicy } from "aws-cdk-lib";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
-import { DataStackProps } from "shared/prop_extensions.types";
+import { DataStackProps } from "@/shared/prop_extensions.types";
 import { Construct } from "constructs";
-import { createCfnOutputIfNotExists } from "../utils/Utils";
 
 enum TableIdPrefix {
   ServerlessSaaSSettings = "ServerlessSaaS-Settings",
@@ -125,69 +124,6 @@ export class SaaSProviderDataStack extends NestedStack {
       outputMapping[TableIdPrefix.ServerlessSaaSTenantUserMapping].nameOutput;
     this.tenantDetailsTableIndexArn = `${this.tenantDetailsTableArn}/index/*`;
     this.tenantUserMappingTableIndexArn = `${this.tenantUserMappingTableArn}/index/*`;
-    createCfnOutputIfNotExists(this, {
-      id: "serverlessSaaSSettingsTableArn",
-      props: {
-        value: this.serverlessSaaSSettingsTableArn,
-        exportName: "serverlessSaaSSettingsTableArn",
-      },
-    });
-
-    createCfnOutputIfNotExists(this, {
-      id: "serverlessSaaSSettingsTableName",
-      props: {
-        value: this.serverlessSaaSSettingsTableName,
-        exportName: "serverlessSaaSSettingsTableName",
-      },
-    });
-
-    createCfnOutputIfNotExists(this, {
-      id: "tenantStackMappingTableArn",
-      props: {
-        value: this.tenantStackMappingTableArn,
-        exportName: "tenantStackMappingTableArn",
-      },
-    });
-
-    createCfnOutputIfNotExists(this, {
-      id: "tenantStackMappingTableName",
-      props: {
-        value: this.tenantStackMappingTableName,
-        exportName: "tenantStackMappingTableName",
-      },
-    });
-
-    createCfnOutputIfNotExists(this, {
-      id: "tenantDetailsTableArn",
-      props: {
-        value: this.tenantDetailsTableArn,
-        exportName: "tenantDetailsTableArn",
-      },
-    });
-
-    createCfnOutputIfNotExists(this, {
-      id: "tenantDetailsTableName",
-      props: {
-        value: this.tenantDetailsTableName,
-        exportName: "tenantDetailsTableName",
-      },
-    });
-
-    createCfnOutputIfNotExists(this, {
-      id: "tenantUserMappingTableArn",
-      props: {
-        value: this.tenantUserMappingTableArn,
-        exportName: "tenantUserMappingTableArn",
-      },
-    });
-
-    createCfnOutputIfNotExists(this, {
-      id: "tenantUserMappingTableName",
-      props: {
-        value: this.tenantUserMappingTableName,
-        exportName: "tenantUserMappingTableName",
-      },
-    });
   }
 
   private createTable(tableConfig: TableConfig): dynamodb.Table {
@@ -198,6 +134,7 @@ export class SaaSProviderDataStack extends NestedStack {
       sortKey,
       readCapacity: 5,
       writeCapacity: 5,
+      removalPolicy: RemovalPolicy.DESTROY,
     });
 
     if (gsiConfig) {

@@ -3,20 +3,18 @@ import {
   ResourceConfig,
   SecurityTypeOptions,
   SaaSProviderAPIStackProps as SystemProviderAPIStackProps,
-} from "shared/prop_extensions.types";
+} from "@/shared/prop_extensions.types";
 import * as cdk from "aws-cdk-lib";
 import * as iam from "aws-cdk-lib/aws-iam";
 import * as apigateway from "aws-cdk-lib/aws-apigateway";
 import * as logs from "aws-cdk-lib/aws-logs";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 
-import {
-  ApiKeySourceType,
-  PassthroughBehavior,
-} from "aws-cdk-lib/aws-apigateway";
+import { ApiKeySourceType } from "aws-cdk-lib/aws-apigateway";
 import { LambdaIntegrationHelper } from "../utils/lambdaHelpers";
-import { createCfnOutputIfNotExists } from "../utils/Utils";
+import { generateLogicalId } from "../utils/Utils";
 import { constructApi } from "../utils/apigwHelper";
+import { SystemProviderInfraStackNameDict } from "../../shared/Constants";
 export class SystemProviderAPIStack extends cdk.NestedStack {
   public readonly usagePlanBasicTier: string;
   public readonly usagePlanStandardTier: string;
@@ -58,6 +56,7 @@ export class SystemProviderAPIStack extends cdk.NestedStack {
       apiKeyPremiumTierParameter,
       apiKeyStandardTierParameter,
       apiKeyBasicTierParameter,
+      tenantId,
     } = props;
     // Usage example:
     const lambdaFunctionArns: Record<string, string> = {
@@ -129,14 +128,20 @@ export class SystemProviderAPIStack extends cdk.NestedStack {
     );
     const systemProviderApiGatewayAccessLogs = new logs.LogGroup(
       this,
-      "systemProviderApiGatewayAccessLogs",
+      generateLogicalId(
+        SystemProviderInfraStackNameDict.systemProviderApiGatewayAccessLogs,
+        tenantId
+      ),
       {
         retention: logs.RetentionDays.ONE_MONTH,
       }
     );
     const systemProviderApiGatewayCloudWatchLogRole = new iam.Role(
       this,
-      "systemProviderApiGatewayCloudWatchLogRole",
+      generateLogicalId(
+        SystemProviderInfraStackNameDict.systemProviderApiGatewayCloudWatchLogRole,
+        tenantId
+      ),
       {
         path: "/",
         managedPolicies: [
@@ -150,7 +155,10 @@ export class SystemProviderAPIStack extends cdk.NestedStack {
 
     new apigateway.CfnAccount(
       this,
-      "systemProviderApiGatewayCloudWatchLogRoleArn",
+      generateLogicalId(
+        SystemProviderInfraStackNameDict.systemProviderApiGatewayCloudWatchLogRoleArn,
+        tenantId
+      ),
       {
         cloudWatchRoleArn: systemProviderApiGatewayCloudWatchLogRole.roleArn,
       }
@@ -158,7 +166,10 @@ export class SystemProviderAPIStack extends cdk.NestedStack {
 
     const systemProviderApiGW = new apigateway.RestApi(
       this,
-      "systemProviderApiGW",
+      generateLogicalId(
+        SystemProviderInfraStackNameDict.systemProviderApiGW,
+        tenantId
+      ),
       {
         cloudWatchRole: true,
         apiKeySourceType: ApiKeySourceType.AUTHORIZER,
@@ -263,65 +274,89 @@ export class SystemProviderAPIStack extends cdk.NestedStack {
     // Create API Keys
     const apiGatewayApiKeySystemAdminProd = new apigateway.ApiKey(
       this,
-      "APIGatewayApiKeySystemAdminProd",
+      generateLogicalId(
+        SystemProviderInfraStackNameDict.APIGatewayApiKeySystemAdminProd,
+        tenantId
+      ),
       {
         //TODO: need to be fixed in real services
         stages: [systemProviderApiGW.deploymentStage],
 
         description: "This is the api key to be used by system admin",
         enabled: true,
-        apiKeyName: "Serverless-SaaS-SysAdmin-ApiKey-Prod",
+        apiKeyName:
+          SystemProviderInfraStackNameDict.ServerlessSaaSSysAdminApiKeyProd,
         value: apiKeyOperationUsersParameter,
       }
     );
 
     const apiGatewayApiKeyPlatinumTierProd = new apigateway.ApiKey(
       this,
-      "APIGatewayApiKeyPlatinumTierProd",
+      generateLogicalId(
+        SystemProviderInfraStackNameDict.APIGatewayApiKeyPlatinumTierProd,
+        tenantId
+      ),
+
       {
         stages: [systemProviderApiGW.deploymentStage],
         description: "This is the api key to be used by platinum tier tenants",
         enabled: true,
-        apiKeyName: "Serverless-SaaS-PlatinumTier-ApiKey-Prod",
+        apiKeyName:
+          SystemProviderInfraStackNameDict.ServerlessSaaSPlatinumTierApiKeyProd,
         value: apiKeyPlatinumTierParameter,
       }
     );
 
     const apiGatewayApiKeyPremiumTierProd = new apigateway.ApiKey(
       this,
-      "APIGatewayApiKeyPremiumTierProd",
+      generateLogicalId(
+        SystemProviderInfraStackNameDict.APIGatewayApiKeyPremiumTierProd,
+        tenantId
+      ),
+
       {
         stages: [systemProviderApiGW.deploymentStage],
 
         description: "This is the api key to be used by premium tier tenants",
         enabled: true,
-        apiKeyName: "Serverless-SaaS-PremiumTier-ApiKey-Prod",
+        apiKeyName:
+          SystemProviderInfraStackNameDict.ServerlessSaaSPremiumTierApiKeyProd,
         value: apiKeyPremiumTierParameter,
       }
     );
 
     const apiGatewayApiKeyStandardTierProd = new apigateway.ApiKey(
       this,
-      "APIGatewayApiKeyStandardTierProd",
+      generateLogicalId(
+        SystemProviderInfraStackNameDict.APIGatewayApiKeyStandardTierProd,
+        tenantId
+      ),
+
       {
         stages: [systemProviderApiGW.deploymentStage],
 
         description: "This is the api key to be used by standard tier tenants",
         enabled: true,
-        apiKeyName: "Serverless-SaaS-StandardTier-ApiKey-Prod",
+        apiKeyName:
+          SystemProviderInfraStackNameDict.ServerlessSaaSStandardTierApiKeyProd,
         value: apiKeyStandardTierParameter,
       }
     );
 
     const apiGatewayApiKeyBasicTierProd = new apigateway.ApiKey(
       this,
-      "APIGatewayApiKeyBasicTierProd",
+      generateLogicalId(
+        SystemProviderInfraStackNameDict.APIGatewayApiKeyBasicTierProd,
+        tenantId
+      ),
+
       {
         stages: [systemProviderApiGW.deploymentStage],
 
         description: "This is the api key to be used by basic tier tenants",
         enabled: true,
-        apiKeyName: "Serverless-SaaS-BasicTier-ApiKey-Prod",
+        apiKeyName:
+          SystemProviderInfraStackNameDict.ServerlessSaaSBasicTierApiKeyProd,
         value: apiKeyBasicTierParameter,
       }
     );
@@ -329,7 +364,11 @@ export class SystemProviderAPIStack extends cdk.NestedStack {
     // Create Usage Plans
     const usagePlanPremiumTier = new apigateway.UsagePlan(
       this,
-      "UsagePlanPremiumTier",
+      generateLogicalId(
+        SystemProviderInfraStackNameDict.UsagePlanPremiumTier,
+        tenantId
+      ),
+
       {
         description: "Usage plan for premium tier tenants",
         quota: {
@@ -340,7 +379,7 @@ export class SystemProviderAPIStack extends cdk.NestedStack {
           burstLimit: 300,
           rateLimit: 300,
         },
-        name: "Plan_Premium_Tier",
+        name: SystemProviderInfraStackNameDict.UsagePlanPremiumTier,
       }
     );
     usagePlanPremiumTier.addApiStage({
@@ -349,7 +388,10 @@ export class SystemProviderAPIStack extends cdk.NestedStack {
     usagePlanPremiumTier.addApiKey(apiGatewayApiKeyPremiumTierProd);
     const usagePlanPlatinumTier = new apigateway.UsagePlan(
       this,
-      "UsagePlanPlatinumTier",
+      generateLogicalId(
+        SystemProviderInfraStackNameDict.UsagePlanPlatinumTier,
+        tenantId
+      ),
       {
         description: "Usage plan for platinum tier tenants",
         quota: {
@@ -360,7 +402,7 @@ export class SystemProviderAPIStack extends cdk.NestedStack {
           burstLimit: 300,
           rateLimit: 300,
         },
-        name: "Plan_Platinum_Tier",
+        name: SystemProviderInfraStackNameDict.UsagePlanPlatinumTier,
       }
     );
     usagePlanPlatinumTier.addApiStage({
@@ -370,7 +412,10 @@ export class SystemProviderAPIStack extends cdk.NestedStack {
 
     const usagePlanStandardTier = new apigateway.UsagePlan(
       this,
-      "UsagePlanStandardTier",
+      generateLogicalId(
+        SystemProviderInfraStackNameDict.UsagePlanStandardTier,
+        tenantId
+      ),
       {
         description: "Usage plan for standard tier tenants",
         quota: {
@@ -381,7 +426,7 @@ export class SystemProviderAPIStack extends cdk.NestedStack {
           burstLimit: 100,
           rateLimit: 75,
         },
-        name: "Plan_Standard_Tier",
+        name: SystemProviderInfraStackNameDict.UsagePlanStandardTier,
       }
     );
     usagePlanStandardTier.addApiStage({
@@ -390,7 +435,11 @@ export class SystemProviderAPIStack extends cdk.NestedStack {
     usagePlanStandardTier.addApiKey(apiGatewayApiKeyStandardTierProd);
     const usagePlanBasicTier = new apigateway.UsagePlan(
       this,
-      "UsagePlanBasicTier",
+      generateLogicalId(
+        SystemProviderInfraStackNameDict.UsagePlanBasicTier,
+        tenantId
+      ),
+
       {
         description: "Usage plan for basic tier tenants",
         quota: {
@@ -401,7 +450,7 @@ export class SystemProviderAPIStack extends cdk.NestedStack {
           burstLimit: 50,
           rateLimit: 50,
         },
-        name: "Plan_Basic_Tier",
+        name: SystemProviderInfraStackNameDict.UsagePlanBasicTier,
       }
     );
     usagePlanBasicTier.addApiStage({
@@ -410,7 +459,11 @@ export class SystemProviderAPIStack extends cdk.NestedStack {
     usagePlanBasicTier.addApiKey(apiGatewayApiKeyBasicTierProd);
     const usagePlanSystemAdmin = new apigateway.UsagePlan(
       this,
-      "UsagePlanSystemAdmin",
+      generateLogicalId(
+        SystemProviderInfraStackNameDict.UsagePlanSystemAdmin,
+        tenantId
+      ),
+
       {
         description: "Usage plan for system admin",
         quota: {
@@ -421,36 +474,13 @@ export class SystemProviderAPIStack extends cdk.NestedStack {
           burstLimit: 5000,
           rateLimit: 500,
         },
-        name: "System_Admin_Usage_Plan",
+        name: SystemProviderInfraStackNameDict.UsagePlanSystemAdmin,
       }
     );
     usagePlanSystemAdmin.addApiStage({
       stage: systemProviderApiGW.deploymentStage,
     });
     usagePlanSystemAdmin.addApiKey(apiGatewayApiKeySystemAdminProd);
-
-    // Define the API resources and methods
-    const optionsIntegration = new apigateway.MockIntegration({
-      integrationResponses: [
-        {
-          statusCode: "200",
-          responseParameters: {
-            "method.response.header.Access-Control-Allow-Methods":
-              "'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT'",
-            "method.response.header.Access-Control-Allow-Headers":
-              "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'",
-            "method.response.header.Access-Control-Allow-Origin": "'*'",
-          },
-          responseTemplates: {
-            "application/json": '{"statusCode": 200}',
-          },
-        },
-      ],
-      passthroughBehavior: PassthroughBehavior.WHEN_NO_MATCH,
-      requestTemplates: {
-        "application/json": '{"statusCode": 200}',
-      },
-    });
 
     const integrationMap = helper.getIntegrationMap();
 
@@ -492,14 +522,21 @@ export class SystemProviderAPIStack extends cdk.NestedStack {
       integrationMap["authorizerFunctionIntegration"];
     const func = lambda.Function.fromFunctionArn(
       this,
-      "TokenAuthorizer",
+      generateLogicalId(
+        SystemProviderInfraStackNameDict.TokenAuthorizer,
+        tenantId
+      ),
       sharedServicesAuthorizerFunctionArn
     );
 
-    const authorizer = new apigateway.TokenAuthorizer(this, "Authorizer", {
-      handler: func,
-      resultsCacheTtl: cdk.Duration.seconds(60),
-    });
+    const authorizer = new apigateway.TokenAuthorizer(
+      this,
+      generateLogicalId(SystemProviderInfraStackNameDict.Authorizer, tenantId),
+      {
+        handler: func,
+        resultsCacheTtl: cdk.Duration.seconds(60),
+      }
+    );
 
     const securityTypeOptions: SecurityTypeOptions = {
       apiKey: { apiKeyRequired: true },
@@ -670,35 +707,5 @@ export class SystemProviderAPIStack extends cdk.NestedStack {
 
     this.restApiId = systemProviderApiGW.restApiId;
     this.restApiIdStageName = stageName;
-
-    createCfnOutputIfNotExists(this, {
-      id: "usagePlanBasicTierId",
-      props: {
-        value: usagePlanBasicTier.usagePlanId,
-        exportName: "usagePlanBasicTierId",
-      },
-    });
-    createCfnOutputIfNotExists(this, {
-      id: "usagePlanStandardTierId",
-      props: {
-        value: usagePlanStandardTier.usagePlanId,
-        exportName: "usagePlanStandardTierId",
-      },
-    });
-    createCfnOutputIfNotExists(this, {
-      id: "usagePlanPremiumTierId",
-      props: {
-        value: usagePlanPremiumTier.usagePlanId,
-        exportName: "usagePlanPremiumTierId",
-      },
-    });
-
-    createCfnOutputIfNotExists(this, {
-      id: "usagePlanPlatinumTierId",
-      props: {
-        value: usagePlanPlatinumTier.usagePlanId,
-        exportName: "usagePlanPlatinumTierId",
-      },
-    });
   }
 }

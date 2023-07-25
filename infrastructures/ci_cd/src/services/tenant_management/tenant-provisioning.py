@@ -34,14 +34,16 @@ def provision_tenant(event, context):
             )    
         
         logger.info(response_ddb)
+        logger.info(tenant_provisioning_pipeline_name)
 
         response_codepipeline = codepipeline.start_pipeline_execution(
             name=tenant_provisioning_pipeline_name
         )
 
-        logger.info(response_ddb)
+        logger.info(response_codepipeline)
 
     except Exception as e:
+        logger.error(e)
         raise
     else:
         return utils.create_success_response("Tenant Provisioning Started")

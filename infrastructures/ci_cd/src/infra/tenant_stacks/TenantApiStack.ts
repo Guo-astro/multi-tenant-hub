@@ -14,9 +14,10 @@ import {
   ResourceConfig,
   SecurityTypeOptions,
   TenantApiStackProps,
-} from "shared/prop_extensions.types";
-import { createCfnOutputIfNotExists } from "../utils/Utils";
+} from "@/shared/prop_extensions.types";
+import { generateLogicalId, generatePhysicalName } from "../utils/Utils";
 import { constructApi } from "../utils/apigwHelper";
+import { TenantSystemNameDict } from "@/shared/Constants";
 export class TenantApiStack extends cdk.NestedStack {
   public readonly restApiId: string;
   public readonly restApiIdStageName: string;
@@ -85,90 +86,59 @@ export class TenantApiStack extends cdk.NestedStack {
     );
     const apiGatewayAccessLogs = new logs.LogGroup(
       this,
-      "apiGatewayAccessLogs",
+
+      generateLogicalId(TenantSystemNameDict.apiGatewayAccessLogs, tenantId),
       {
-        logGroupName: `apiGatewayAccessLogs-${tenantId}`,
+        logGroupName: generatePhysicalName(
+          TenantSystemNameDict.apiGatewayAccessLogs,
+          tenantId
+        ),
+        removalPolicy: cdk.RemovalPolicy.DESTROY,
         retention: logs.RetentionDays.ONE_MONTH,
       }
     );
 
-    const apiGatewayCloudWatchLogRole = new iam.Role(
+    const apigw = new apigateway.RestApi(
       this,
-      "apiGatewayCloudWatchLogRole",
+      generateLogicalId(TenantSystemNameDict.apigw, tenantId),
       {
-        path: "/",
-        managedPolicies: [
-          iam.ManagedPolicy.fromAwsManagedPolicyName(
-            "service-role/AmazonAPIGatewayPushToCloudWatchLogs"
+        restApiName: generatePhysicalName(TenantSystemNameDict.apigw, tenantId),
+        cloudWatchRole: true,
+        apiKeySourceType: ApiKeySourceType.AUTHORIZER,
+        defaultCorsPreflightOptions: {
+          allowOrigins: apigateway.Cors.ALL_ORIGINS,
+          allowMethods: apigateway.Cors.ALL_METHODS,
+        },
+        deployOptions: {
+          stageName: stageName,
+          accessLogDestination: new apigateway.LogGroupLogDestination(
+            apiGatewayAccessLogs
           ),
-        ],
-        assumedBy: new iam.ServicePrincipal("apigateway.amazonaws.com"),
+          accessLogFormat: apigateway.AccessLogFormat.jsonWithStandardFields({
+            caller: true,
+            httpMethod: true,
+            ip: true,
+            protocol: true,
+            requestTime: true,
+            resourcePath: true,
+            responseLength: true,
+            status: true,
+            user: true,
+          }),
+          tracingEnabled: true,
+          methodOptions: {
+            "/*/*": {
+              dataTraceEnabled: false,
+              loggingLevel: apigateway.MethodLoggingLevel.INFO,
+              metricsEnabled: true,
+              //TODO: accepts 100 requests per minute, allowing burst up to 200 requests per minute
+              throttlingRateLimit: 100,
+              throttlingBurstLimit: 200,
+            },
+          },
+        },
       }
     );
-
-    new apigateway.CfnAccount(this, "apiGatewayCloudWatchLogRoleArn", {
-      cloudWatchRoleArn: apiGatewayCloudWatchLogRole.roleArn,
-    });
-
-    const apigw = new apigateway.RestApi(this, "apigw", {
-      cloudWatchRole: true,
-      apiKeySourceType: ApiKeySourceType.AUTHORIZER,
-      defaultCorsPreflightOptions: {
-        allowOrigins: apigateway.Cors.ALL_ORIGINS,
-        allowMethods: apigateway.Cors.ALL_METHODS, // this is also the default
-      },
-      deployOptions: {
-        stageName: `${stageName}`,
-        accessLogDestination: new apigateway.LogGroupLogDestination(
-          apiGatewayAccessLogs
-        ),
-        accessLogFormat: apigateway.AccessLogFormat.jsonWithStandardFields({
-          caller: true,
-          httpMethod: true,
-          ip: true,
-          protocol: true,
-          requestTime: true,
-          resourcePath: true,
-          responseLength: true,
-          status: true,
-          user: true,
-        }),
-        tracingEnabled: true,
-        methodOptions: {
-          "/*/*": {
-            dataTraceEnabled: false,
-            loggingLevel: apigateway.MethodLoggingLevel.INFO,
-            metricsEnabled: true,
-            //TODO: accepts 100 requests per minute, allowing burst up to 200 requests per minute
-            throttlingRateLimit: 100,
-            throttlingBurstLimit: 200,
-          },
-        },
-      },
-    });
-
-    // Define the API resources and methods
-    const optionsIntegration = new apigateway.MockIntegration({
-      integrationResponses: [
-        {
-          statusCode: "200",
-          responseParameters: {
-            "method.response.header.Access-Control-Allow-Methods":
-              "'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT'",
-            "method.response.header.Access-Control-Allow-Headers":
-              "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'",
-            "method.response.header.Access-Control-Allow-Origin": "'*'",
-          },
-          responseTemplates: {
-            "application/json": '{"statusCode": 200}',
-          },
-        },
-      ],
-      passthroughBehavior: PassthroughBehavior.WHEN_NO_MATCH,
-      requestTemplates: {
-        "application/json": '{"statusCode": 200}',
-      },
-    });
 
     const integrationMap = helper.getIntegrationMap();
 
@@ -198,14 +168,18 @@ export class TenantApiStack extends cdk.NestedStack {
       integrationMap["authorizerFunctionIntegration"];
     const func = lambda.Function.fromFunctionArn(
       this,
-      "TokenAuthorizer",
+      generateLogicalId(TenantSystemNameDict.authorizer, tenantId),
       authorizerFunctionArn
     );
 
-    const authorizer = new apigateway.TokenAuthorizer(this, "Authorizer", {
-      handler: func,
-      resultsCacheTtl: cdk.Duration.seconds(60),
-    });
+    const authorizer = new apigateway.TokenAuthorizer(
+      this,
+      generateLogicalId(TenantSystemNameDict.tokenAuthorizer, tenantId),
+      {
+        handler: func,
+        resultsCacheTtl: cdk.Duration.seconds(60),
+      }
+    );
     const securityTypeOptions: SecurityTypeOptions = {
       apiKey: { apiKeyRequired: true },
       sigv4Reference: { authorizationType: apigateway.AuthorizationType.IAM },
@@ -277,12 +251,5 @@ export class TenantApiStack extends cdk.NestedStack {
 
     this.restApiId = apigw.restApiId;
     this.restApiIdStageName = stageName;
-    createCfnOutputIfNotExists(this, {
-      id: "tenantApiGatewayUrl",
-      props: {
-        exportName: "tenantApiGatewayUrl",
-        value: `https://${this.restApiId}.execute-api.${cdk.Aws.REGION}.amazonaws.com/${this.restApiIdStageName}/`,
-      },
-    });
   }
 }

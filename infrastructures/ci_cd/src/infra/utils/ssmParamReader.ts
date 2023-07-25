@@ -4,7 +4,7 @@ import {
   AwsSdkCall,
 } from "aws-cdk-lib/custom-resources";
 import { Construct } from "constructs";
-import { SSMParameterReaderProps } from "shared/prop_extensions.types";
+import { SSMParameterReaderProps } from "@/shared/prop_extensions.types";
 import * as iam from "aws-cdk-lib/aws-iam";
 
 export class SSMParameterReader extends AwsCustomResource {

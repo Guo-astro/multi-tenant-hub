@@ -3,8 +3,10 @@ import * as cloudformation from "aws-cdk-lib/aws-cloudformation";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as iam from "aws-cdk-lib/aws-iam";
 import { Construct } from "constructs";
-import { SaaSProviderCustomResourceStackProps } from "shared/prop_extensions.types";
+import { SaaSProviderCustomResourceStackProps } from "@/shared/prop_extensions.types";
 import { Provider } from "aws-cdk-lib/custom-resources";
+import { SystemProviderInfraStackNameDict } from "../../shared/Constants";
+import { generateLogicalId } from "../utils/Utils";
 
 export class SaaSProviderCustomResourceStack extends cdk.NestedStack {
   constructor(
@@ -13,82 +15,78 @@ export class SaaSProviderCustomResourceStack extends cdk.NestedStack {
     props: SaaSProviderCustomResourceStackProps
   ) {
     super(scope, id, props);
-
-    // // Custom resources
-    // const updateSettingsTableExecutionRole = new iam.Role(
-    //   this,
-    //   "updateSettingsTableExecutionRole",
-    //   {
-    //     assumedBy: new iam.ServicePrincipal("lambda.amazonaws.com"),
-    //   }
-    // );
-
-    // updateSettingsTableExecutionRole.addToPolicy(
-    //   new iam.PolicyStatement({
-    //     effect: iam.Effect.ALLOW,
-    //     actions: ["lambda:InvokeFunction"],
-    //     resources: [
-    //       props.updateSettingsTableFunctionArn,
-    //       props.updateTenantStackMapTableFunctionArn,
-    //     ],
-    //   })
-    // );
-
+    const tenantId = props.tenantId;
     const updateSettingsTableFunction = lambda.Function.fromFunctionArn(
       this,
-      "UpdateSettingsTableFunction",
+      generateLogicalId(
+        SystemProviderInfraStackNameDict.UpdateSettingsTableFunction,
+        tenantId
+      ),
+
       props.updateSettingsTableFunctionArn
     );
 
-    const provider = new Provider(this, "UpdateSettingsTableProvider", {
-      onEventHandler: updateSettingsTableFunction,
-    });
+    const provider = new Provider(
+      this,
+      generateLogicalId(
+        SystemProviderInfraStackNameDict.UpdateSettingsTableProvider,
+        tenantId
+      ),
+      {
+        onEventHandler: updateSettingsTableFunction,
+      }
+    );
 
-    new cdk.CustomResource(this, "UpdateSettingsTableCustomResource", {
-      serviceToken: provider.serviceToken,
-      properties: {
-        ForceRefreshTrigger: new Date().toISOString(),
-        SettingsTableName: props.serverlessSaaSSettingsTableName,
-        cognitoUserPoolId: props.cognitoUserPoolId,
-        cognitoUserPoolClientId: props.cognitoUserPoolClientId,
-      },
-    });
-
-    // const updateTenantStackMapCRExecutionRole = new iam.Role(
-    //   this,
-    //   "updateTenantStackMapCRExecutionRole",
-    //   {
-    //     assumedBy: new iam.ServicePrincipal("lambda.amazonaws.com"),
-    //   }
-    // );
-
-    // updateTenantStackMapCRExecutionRole.addToPolicy(
-    //   new iam.PolicyStatement({
-    //     effect: iam.Effect.ALLOW,
-    //     actions: ["lambda:InvokeFunction"],
-    //     resources: [
-    //       props.updateTenantStackMapTableFunctionArn,
-    //       props.updateSettingsTableFunctionArn,
-    //     ],
-    //   })
-    // );
+    new cdk.CustomResource(
+      this,
+      generateLogicalId(
+        SystemProviderInfraStackNameDict.UpdateSettingsTableCustomResource,
+        tenantId
+      ),
+      {
+        serviceToken: provider.serviceToken,
+        properties: {
+          ForceRefreshTrigger: new Date().toISOString(),
+          SettingsTableName: props.serverlessSaaSSettingsTableName,
+          cognitoUserPoolId: props.cognitoUserPoolId,
+          cognitoUserPoolClientId: props.cognitoUserPoolClientId,
+        },
+      }
+    );
 
     const updateTenantStackMapFunction = lambda.Function.fromFunctionArn(
       this,
-      "UpdateTenantStackMapFunction",
+      generateLogicalId(
+        SystemProviderInfraStackNameDict.UpdateTenantStackMapFunction,
+        tenantId
+      ),
       props.updateTenantStackMapTableFunctionArn
     );
 
-    const tenantProvider = new Provider(this, "UpdateTenantStackMapProvider", {
-      onEventHandler: updateTenantStackMapFunction,
-    });
+    const tenantProvider = new Provider(
+      this,
+      generateLogicalId(
+        SystemProviderInfraStackNameDict.UpdateTenantStackMapProvider,
+        tenantId
+      ),
+      {
+        onEventHandler: updateTenantStackMapFunction,
+      }
+    );
 
-    new cdk.CustomResource(this, "updateTenantStackMapCustomResource", {
-      serviceToken: tenantProvider.serviceToken,
-      properties: {
-        ForceRefreshTrigger: new Date().toISOString(),
-        TenantStackMappingTableName: props.tenantStackMapTableName,
-      },
-    });
+    new cdk.CustomResource(
+      this,
+      generateLogicalId(
+        SystemProviderInfraStackNameDict.updateTenantStackMapCustomResource,
+        tenantId
+      ),
+      {
+        serviceToken: tenantProvider.serviceToken,
+        properties: {
+          ForceRefreshTrigger: new Date().toISOString(),
+          TenantStackMappingTableName: props.tenantStackMapTableName,
+        },
+      }
+    );
   }
 }

@@ -7,11 +7,16 @@ import {
   CfnUserPoolUserToGroupAttachment,
 } from "aws-cdk-lib/aws-cognito";
 import { Construct } from "constructs";
-import { AuthStackProps } from "shared/prop_extensions.types";
+import { AuthStackProps } from "@/shared/prop_extensions.types";
 import * as cdk from "aws-cdk-lib";
 import { Trail } from "aws-cdk-lib/aws-cloudtrail";
 import { RetentionDays } from "aws-cdk-lib/aws-logs";
-import { genDateSuffix } from "../utils/Utils";
+import {
+  genDateSuffix,
+  generateLogicalId,
+  generatePhysicalName,
+} from "../utils/Utils";
+import { SystemProviderInfraStackNameDict } from "@/shared/Constants";
 
 export class SaaSProviderAuthStack extends cdk.NestedStack {
   public readonly cognitoUserPoolId: string;
@@ -31,17 +36,33 @@ export class SaaSProviderAuthStack extends cdk.NestedStack {
       adminUserPoolCallbackURL,
       tenantUserPoolCallbackURL,
       tags,
+      tenantId,
     } = props;
-    new Trail(this, "MultitenantCloudTrail", {
-      sendToCloudWatchLogs: true,
-      cloudWatchLogsRetention: RetentionDays.ONE_DAY,
-    });
-    const userPoolId = `${tags.environment}PooledTenantUserPool`;
-    const userPoolName = `${userPoolId}`;
+    new Trail(
+      this,
+      generateLogicalId(
+        SystemProviderInfraStackNameDict.MultitenantCloudTrail,
+        tenantId
+      ),
+      {
+        sendToCloudWatchLogs: true,
+        cloudWatchLogsRetention: RetentionDays.ONE_DAY,
+      }
+    );
+
+    const userPoolId = generateLogicalId(
+      SystemProviderInfraStackNameDict.PooledTenantUserPool,
+      tenantId
+    );
+    const userPoolName = generatePhysicalName(
+      SystemProviderInfraStackNameDict.PooledTenantUserPool,
+      tenantId
+    );
 
     const cfnUserPoolClientName = `${userPoolId}Client`;
     const cfnUserPoolClientId = `${cfnUserPoolClientName}Id`;
     const cfnUserPoolDomaintId = `${userPoolId}Domain`;
+    /**^[a-z0-9](?:[a-z0-9\-]{0,61}[a-z0-9])?$ Only lower case is allowed for domain ****/
     const cfnUserPoolDomain = `${cfnUserPoolDomaintId.toLocaleLowerCase()}`;
 
     const cognitoUserPool = new CfnUserPool(this, userPoolId, {
@@ -108,13 +129,16 @@ export class SaaSProviderAuthStack extends cdk.NestedStack {
       }
     );
     new CfnUserPoolDomain(this, cfnUserPoolDomaintId, {
-      domain: cdk.Fn.join("-", [cfnUserPoolDomain, cdk.Aws.ACCOUNT_ID]),
+      domain: `${cfnUserPoolDomain}-${cdk.Aws.ACCOUNT_ID}`,
       userPoolId: cognitoUserPool.ref,
     });
 
     const cognitoOperationUsersUserPool = new CfnUserPool(
       this,
-      "CognitoOperationUsersUserPool",
+      generateLogicalId(
+        SystemProviderInfraStackNameDict.CognitoOperationUsersUserPool,
+        tenantId
+      ),
       {
         autoVerifiedAttributes: ["email"],
         accountRecoverySetting: {
@@ -166,9 +190,15 @@ export class SaaSProviderAuthStack extends cdk.NestedStack {
 
     const cognitoOperationUsersUserPoolClient = new CfnUserPoolClient(
       this,
-      "CognitoOperationUsersUserPoolClient",
+      generateLogicalId(
+        SystemProviderInfraStackNameDict.CognitoOperationUsersUserPoolClient,
+        tenantId
+      ),
       {
-        clientName: "ServerlessSaaSOperationUsersPoolClient",
+        clientName: generatePhysicalName(
+          SystemProviderInfraStackNameDict.CognitoOperationUsersUserPoolClient,
+          tenantId
+        ),
         generateSecret: false,
         userPoolId: cognitoOperationUsersUserPool.ref,
         allowedOAuthFlowsUserPoolClient: true,
@@ -189,55 +219,85 @@ export class SaaSProviderAuthStack extends cdk.NestedStack {
         ],
       }
     );
-    new CfnUserPoolDomain(this, "CognitoOperationUsersUserPoolDomain", {
-      domain: cdk.Fn.join("-", [
-        "operationsusers-serverlesssaas",
-        cdk.Aws.ACCOUNT_ID,
-      ]),
-      userPoolId: cognitoOperationUsersUserPool.ref,
-    });
+    new CfnUserPoolDomain(
+      this,
+      generateLogicalId(
+        SystemProviderInfraStackNameDict.CognitoOperationUsersUserPoolDomain,
+        tenantId
+      ),
+      {
+        domain: generatePhysicalName(
+          SystemProviderInfraStackNameDict.CognitoOperationUsersUserPoolDomain,
+          tenantId
+        ).toLocaleLowerCase(),
+
+        userPoolId: cognitoOperationUsersUserPool.ref,
+      }
+    );
 
     const cognitoAdminUserGroup = new CfnUserPoolGroup(
       this,
-      "CognitoAdminUserGroup",
+      generateLogicalId(
+        SystemProviderInfraStackNameDict.CognitoAdminUserGroup,
+        tenantId
+      ),
+
       {
-        groupName: "SystemAdmins",
+        groupName: generatePhysicalName(
+          SystemProviderInfraStackNameDict.CognitoAdminUserGroup,
+          tenantId
+        ),
+
         description: "Admin user group",
         precedence: 0,
         userPoolId: cognitoOperationUsersUserPool.ref,
       }
     );
 
-    const cognitoAdminUser = new CfnUserPoolUser(this, "CognitoAdminUser", {
-      username: `admin${genDateSuffix()}`,
-      desiredDeliveryMediums: ["EMAIL"],
-      forceAliasCreation: true,
-      userAttributes: [
-        {
-          name: "email",
-          value: adminEmail,
-        },
-        {
-          name: "custom:tenantId",
-          value: "system_admins",
-        },
-        {
-          name: "custom:apiKey",
-          value: apiKeyOperationUsers,
-        },
-        {
-          name: "custom:userRole",
-          value: systemAdminRoleName,
-        },
-      ],
-      userPoolId: cognitoOperationUsersUserPool.ref,
-    });
+    const cognitoAdminUser = new CfnUserPoolUser(
+      this,
+      generateLogicalId(
+        SystemProviderInfraStackNameDict.CognitoAdminUser,
+        tenantId
+      ),
+      {
+        username: `admin${genDateSuffix()}`,
+        desiredDeliveryMediums: ["EMAIL"],
+        forceAliasCreation: true,
+        userAttributes: [
+          {
+            name: "email",
+            value: adminEmail,
+          },
+          {
+            name: "custom:tenantId",
+            value: "system_admins",
+          },
+          {
+            name: "custom:apiKey",
+            value: apiKeyOperationUsers,
+          },
+          {
+            name: "custom:userRole",
+            value: systemAdminRoleName,
+          },
+        ],
+        userPoolId: cognitoOperationUsersUserPool.ref,
+      }
+    );
 
-    new CfnUserPoolUserToGroupAttachment(this, "CognitoAddUserToGroup", {
-      groupName: cognitoAdminUserGroup.ref,
-      username: cognitoAdminUser.ref,
-      userPoolId: cognitoOperationUsersUserPool.ref,
-    });
+    new CfnUserPoolUserToGroupAttachment(
+      this,
+      generateLogicalId(
+        SystemProviderInfraStackNameDict.CognitoAddUserToGroup,
+        tenantId
+      ),
+      {
+        groupName: cognitoAdminUserGroup.ref,
+        username: cognitoAdminUser.ref,
+        userPoolId: cognitoOperationUsersUserPool.ref,
+      }
+    );
     this.cognitoUserPoolId = cognitoUserPool.ref;
     this.cognitoUserPoolClientId = cognitoUserPoolClient.ref;
     this.cognitoOperationUsersUserPoolId = cognitoOperationUsersUserPool.ref;
@@ -246,55 +306,5 @@ export class SaaSProviderAuthStack extends cdk.NestedStack {
     this.cognitoOperationUsersUserPoolProviderURL =
       cognitoOperationUsersUserPool.ref;
     this.stackRegion = this.region;
-    // this.cognitoUserPoolId = createstringIfNotExists(this, {
-    //   id: "cognitoUserPoolId",
-    //   props: {
-    //     value: cognitoUserPool.ref,
-    //     exportName: "cognitoUserPoolId",
-    //   },
-    // });
-
-    // this.cognitoUserPoolClientId = createstringIfNotExists(this, {
-    //   id: "cognitoUserPoolClientId",
-    //   props: {
-    //     value: cognitoUserPoolClient.ref,
-    //     exportName: "cognitoUserPoolClientId",
-    //   },
-    // });
-
-    // this.cognitoOperationUsersUserPoolId = createstringIfNotExists(this, {
-    //   id: "cognitoOperationUsersUserPoolId",
-    //   props: {
-    //     value: cognitoOperationUsersUserPool.ref,
-    //     exportName: "cognitoOperationUsersUserPoolId",
-    //   },
-    // });
-
-    // this.cognitoOperationUsersUserPoolClientId = createstringIfNotExists(this, {
-    //   id: "cognitoOperationUsersUserPoolClientId",
-    //   props: {
-    //     value: cognitoOperationUsersUserPoolClient.ref,
-    //     exportName: "cognitoOperationUsersUserPoolClientId",
-    //   },
-    // });
-
-    // this.cognitoOperationUsersUserPoolProviderURL = createstringIfNotExists(
-    //   this,
-    //   {
-    //     id: "cognitoOperationUsersUserPoolProviderURL",
-    //     props: {
-    //       value: cognitoOperationUsersUserPool.ref,
-    //       exportName: "cognitoOperationUsersUserPoolProviderURL",
-    //     },
-    //   }
-    // );
-
-    // this.stackRegion = createstringIfNotExists(this, {
-    //   id: "stackRegion",
-    //   props: {
-    //     value: this.region,
-    //     exportName: "stackRegion",
-    //   },
-    // });
   }
 }

@@ -1,10 +1,12 @@
 import { Construct } from "constructs";
 import { S3Origin } from "aws-cdk-lib/aws-cloudfront-origins";
-import { SaaSProviderAdminUIDeploymentStackProps } from "shared/prop_extensions.types";
+import { SaaSProviderAdminUIDeploymentStackProps } from "@/shared/prop_extensions.types";
 import * as s3 from "aws-cdk-lib/aws-s3";
 import * as cdk from "aws-cdk-lib";
 import * as cloudfront from "aws-cdk-lib/aws-cloudfront";
 import * as iam from "aws-cdk-lib/aws-iam";
+import { generateLogicalId } from "../utils/Utils";
+import { SystemProviderInfraStackNameDict } from "../../shared/Constants";
 
 export class SaaSProviderWebHostingStack extends cdk.NestedStack {
   public readonly adminAppBucketName: string;
@@ -23,35 +25,41 @@ export class SaaSProviderWebHostingStack extends cdk.NestedStack {
     props: SaaSProviderAdminUIDeploymentStackProps
   ) {
     super(scope, id, props);
-
+    const tenantId = props.tenantId;
     const originAccessIdentity = new cloudfront.OriginAccessIdentity(
       this,
-      "originAccessIdentity",
+      generateLogicalId(
+        SystemProviderInfraStackNameDict.originAccessIdentity,
+        tenantId
+      ),
       {
         comment: "Origin Access Identity for both CloudFront Distributions",
       }
     );
-    const { bucket: adminAppBucket, site: adminAppSite } = createAppSite(
+    const { bucket: adminAppBucket, site: adminAppSite } = createAppHosting(
       this,
-      "adminAppBucketId",
-      "adminAppCachePolicyId",
-      "adminAppDistributionId",
-      originAccessIdentity
+      SystemProviderInfraStackNameDict.adminAppBucketId,
+      SystemProviderInfraStackNameDict.adminAppCachePolicyId,
+      SystemProviderInfraStackNameDict.adminAppDistributionId,
+      originAccessIdentity,
+      tenantId
     );
     const { bucket: onBoardingAppBucket, site: onBoardingAppSite } =
-      createAppSite(
+      createAppHosting(
         this,
-        "landingAppBucketId",
-        "landingAppCachePolicyId",
-        "landingAppDistributionId",
-        originAccessIdentity
+        SystemProviderInfraStackNameDict.landingAppBucketId,
+        SystemProviderInfraStackNameDict.landingAppCachePolicyId,
+        SystemProviderInfraStackNameDict.landingAppDistributionId,
+        originAccessIdentity,
+        tenantId
       );
-    const { bucket: tenantAppBucket, site: tenantAppSite } = createAppSite(
+    const { bucket: tenantAppBucket, site: tenantAppSite } = createAppHosting(
       this,
-      "tenantAppBucketId",
-      "tenantAppCachePolicyId",
-      "tenantAppDistributionId",
-      originAccessIdentity
+      SystemProviderInfraStackNameDict.tenantAppBucketId,
+      SystemProviderInfraStackNameDict.tenantAppCachePolicyId,
+      SystemProviderInfraStackNameDict.tenantAppDistributionId,
+      originAccessIdentity,
+      tenantId
     );
     this.onBoardingAppBucketName = onBoardingAppBucket.bucketName;
     this.tenantAppBucketName = tenantAppBucket.bucketName;
@@ -67,18 +75,23 @@ export class SaaSProviderWebHostingStack extends cdk.NestedStack {
   }
 }
 
-function createAppSite(
+function createAppHosting(
   stack: cdk.Stack,
   bucketId: string,
   cachePolicyId: string,
   distributionId: string,
-  originAccessIdentity: cloudfront.OriginAccessIdentity
+  originAccessIdentity: cloudfront.OriginAccessIdentity,
+  tenantId: string
 ): { bucket: s3.Bucket; site: cloudfront.Distribution } {
-  const appBucket = new s3.Bucket(stack, `${bucketId}`, {
-    encryption: s3.BucketEncryption.S3_MANAGED,
-    blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
-    removalPolicy: cdk.RemovalPolicy.DESTROY,
-  });
+  const appBucket = new s3.Bucket(
+    stack,
+    generateLogicalId(bucketId, tenantId),
+    {
+      encryption: s3.BucketEncryption.S3_MANAGED,
+      blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+    }
+  );
 
   appBucket.addToResourcePolicy(
     new iam.PolicyStatement({
@@ -93,44 +106,53 @@ function createAppSite(
     })
   );
 
-  const cachePolicy = new cloudfront.CachePolicy(stack, `${cachePolicyId}`, {
-    comment: `${cachePolicyId}`,
-    defaultTtl: cdk.Duration.seconds(3600),
-    maxTtl: cdk.Duration.seconds(86_400),
-    minTtl: cdk.Duration.seconds(60),
-    cookieBehavior: cloudfront.CacheCookieBehavior.none(),
-    headerBehavior: cloudfront.CacheHeaderBehavior.allowList("X-CustomHeader"),
-    queryStringBehavior: cloudfront.CacheQueryStringBehavior.none(),
-    enableAcceptEncodingGzip: true,
-    enableAcceptEncodingBrotli: true,
-  });
+  const cachePolicy = new cloudfront.CachePolicy(
+    stack,
+    generateLogicalId(cachePolicyId, tenantId),
+    {
+      comment: generateLogicalId(cachePolicyId, tenantId),
+      defaultTtl: cdk.Duration.seconds(3600),
+      maxTtl: cdk.Duration.seconds(86_400),
+      minTtl: cdk.Duration.seconds(60),
+      cookieBehavior: cloudfront.CacheCookieBehavior.none(),
+      headerBehavior:
+        cloudfront.CacheHeaderBehavior.allowList("X-CustomHeader"),
+      queryStringBehavior: cloudfront.CacheQueryStringBehavior.none(),
+      enableAcceptEncodingGzip: true,
+      enableAcceptEncodingBrotli: true,
+    }
+  );
 
-  const appSite = new cloudfront.Distribution(stack, `${distributionId}`, {
-    defaultBehavior: {
-      origin: new S3Origin(appBucket, { originAccessIdentity }),
-      allowedMethods: cloudfront.AllowedMethods.ALLOW_GET_HEAD_OPTIONS,
-      cachedMethods: cloudfront.CachedMethods.CACHE_GET_HEAD_OPTIONS,
-      compress: true,
-      cachePolicy,
-      viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
-    },
-    defaultRootObject: "index.html",
-    enabled: true,
-    httpVersion: cloudfront.HttpVersion.HTTP2,
-    priceClass: cloudfront.PriceClass.PRICE_CLASS_ALL,
-    errorResponses: [
-      {
-        httpStatus: 403,
-        responseHttpStatus: 200,
-        responsePagePath: "/index.html",
+  const appSite = new cloudfront.Distribution(
+    stack,
+    generateLogicalId(distributionId, tenantId),
+    {
+      defaultBehavior: {
+        origin: new S3Origin(appBucket, { originAccessIdentity }),
+        allowedMethods: cloudfront.AllowedMethods.ALLOW_GET_HEAD_OPTIONS,
+        cachedMethods: cloudfront.CachedMethods.CACHE_GET_HEAD_OPTIONS,
+        compress: true,
+        cachePolicy,
+        viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
       },
-      {
-        httpStatus: 404,
-        responseHttpStatus: 200,
-        responsePagePath: "/index.html",
-      },
-    ],
-  });
+      defaultRootObject: "index.html",
+      enabled: true,
+      httpVersion: cloudfront.HttpVersion.HTTP2,
+      priceClass: cloudfront.PriceClass.PRICE_CLASS_ALL,
+      errorResponses: [
+        {
+          httpStatus: 403,
+          responseHttpStatus: 200,
+          responsePagePath: "/index.html",
+        },
+        {
+          httpStatus: 404,
+          responseHttpStatus: 200,
+          responsePagePath: "/index.html",
+        },
+      ],
+    }
+  );
 
   return { bucket: appBucket, site: appSite };
 }

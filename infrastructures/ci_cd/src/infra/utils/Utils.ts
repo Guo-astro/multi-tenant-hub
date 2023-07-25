@@ -36,11 +36,47 @@ export function createCfnOutputIfNotExists(
   // }
 
   // Create or update the CfnOutput
-  // const cfnOutput = new cdk.CfnOutput(stack, id, { ...props, exportName });
-  new StringParameter(stack, `${exportName}SSM`, {
-    parameterName: exportName,
-    description: exportName,
-    stringValue: `${props.value}`,
-  });
+  // // const cfnOutput = new cdk.CfnOutput(stack, id, { ...props, exportName });
+  // new StringParameter(stack, `${exportName}SSM`, {
+  //   parameterName: exportName,
+  //   description: exportName,
+  //   stringValue: `${props.value}`,
+  // });
   return new cdk.CfnOutput(stack, id, { ...props, exportName });
+}
+function capitalizeFirstLetter(str: string): string {
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
+export function generateLogicalId(
+  identifier: string,
+  tenantCatagory?: string,
+  dedupKey?: string
+): string {
+  if (dedupKey == null) {
+    return `${capitalizeFirstLetter(identifier)}`;
+  }
+  return `${capitalizeFirstLetter(identifier)}${capitalizeFirstLetter(
+    dedupKey
+  )}`;
+}
+
+export function generatePhysicalName(
+  identifier: string,
+  tenantId: string,
+  dedupKey?: string
+): string {
+  if (dedupKey == null) {
+    return `${tenantId}${capitalizeFirstLetter(identifier)}`;
+  }
+  return `${tenantId}${capitalizeFirstLetter(
+    identifier
+  )}${capitalizeFirstLetter(dedupKey)}`;
+}
+
+export function generateCfnExportName(
+  identifier: string,
+  tenantId?: string,
+  dedupKey?: string
+): string {
+  return `${identifier}`;
 }

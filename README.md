@@ -40,3 +40,6 @@ npx cdk bootstrap \
 
 1. Set up secret manager for PAT token (Feature: use conection)
 2. Delete all webhook generated from github to prevent push trigger for tenant pipeline(if you are not using connection)
+
+## Migration
+1. [Cognito](https://www.thelambdablog.com/implementing-a-lazy-user-migration-lambda-for-an-aws-cognito-user-pool/)

@@ -1,6 +1,6 @@
 import { NestedStack } from "aws-cdk-lib";
 import { Construct } from "constructs";
-import { LambdaStackProps } from "shared/prop_extensions.types";
+import { LambdaStackProps } from "@/shared/prop_extensions.types";
 import * as cdk from "aws-cdk-lib";
 import * as iam from "aws-cdk-lib/aws-iam";
 import * as lambda from "aws-cdk-lib/aws-lambda";
@@ -8,6 +8,8 @@ import * as codedeploy from "aws-cdk-lib/aws-codedeploy";
 import * as cloudwatch from "aws-cdk-lib/aws-cloudwatch";
 import { Repository } from "aws-cdk-lib/aws-ecr";
 import { createContaineredLambdaFunction } from "../utils/lambdaHelpers";
+import { SystemProviderInfraStackNameDict } from "../../shared/Constants";
+import { generateLogicalId, generatePhysicalName } from "../utils/Utils";
 
 export class SaaSProviderLambdaStack extends NestedStack {
   public readonly registerTenantLambdaExecutionRoleArn: string;
@@ -60,23 +62,28 @@ export class SaaSProviderLambdaStack extends NestedStack {
       serverlessSaaSSettingsTableName,
       tenantDetailsTableIndexArn,
       tenantUserMappingTableIndexArn,
+      tenantId,
     } = props;
-    console.log("lambdaImageTag", lambdaImageTag);
     //   use the fetched param value
     const repositoryName = lambdaEcrRepositoryUri.split("/").pop()!;
 
-    // `repository` is of type `IRepository`, not `Repository`
     const lambdaEcrRepository = Repository.fromRepositoryName(
       this,
-      "MyRepository",
+      generateLogicalId(
+        SystemProviderInfraStackNameDict.MyRepository,
+        tenantId
+      ),
       repositoryName
     ) as Repository;
 
     const authorizerExecutionRole = new iam.Role(
       this,
-      "AuthorizerExecutionRole",
+      generateLogicalId(
+        SystemProviderInfraStackNameDict.AuthorizerExecutionRole,
+        tenantId
+      ),
+
       {
-        roleName: "authorizer-execution-role",
         assumedBy: new iam.ServicePrincipal("lambda.amazonaws.com"),
         managedPolicies: [
           iam.ManagedPolicy.fromAwsManagedPolicyName(
@@ -128,9 +135,12 @@ export class SaaSProviderLambdaStack extends NestedStack {
 
     const tenantUserPoolLambdaExecutionRole = new iam.Role(
       this,
-      "TenantUserPoolLambdaExecutionRole",
+      generateLogicalId(
+        SystemProviderInfraStackNameDict.TenantUserPoolLambdaExecutionRole,
+        tenantId
+      ),
+
       {
-        roleName: `tenant-userpool-lambda-execution-role-${cdk.Aws.REGION}`,
         path: "/",
         assumedBy: new iam.ServicePrincipal("lambda.amazonaws.com"),
         managedPolicies: [
@@ -146,37 +156,46 @@ export class SaaSProviderLambdaStack extends NestedStack {
     );
 
     tenantUserPoolLambdaExecutionRole.attachInlinePolicy(
-      new iam.Policy(this, "TenantUserPoolLambdaExecutionPolicy", {
-        document: new iam.PolicyDocument({
-          statements: [
-            new iam.PolicyStatement({
-              effect: iam.Effect.ALLOW,
-              actions: ["cognito-idp:*"],
-              resources: ["*"],
-            }),
-            new iam.PolicyStatement({
-              effect: iam.Effect.ALLOW,
-              actions: ["dynamodb:GetItem"],
-              resources: [tenantDetailsTableArn, tenantDetailsTableIndexArn],
-            }),
-            new iam.PolicyStatement({
-              effect: iam.Effect.ALLOW,
-              actions: ["dynamodb:GetItem", "dynamodb:Query"],
-              resources: [
-                tenantUserMappingTableArn,
-                tenantUserMappingTableIndexArn,
-              ],
-            }),
-          ],
-        }),
-      })
+      new iam.Policy(
+        this,
+        generateLogicalId(
+          SystemProviderInfraStackNameDict.TenantUserPoolLambdaExecutionPolicy,
+          tenantId
+        ),
+        {
+          document: new iam.PolicyDocument({
+            statements: [
+              new iam.PolicyStatement({
+                effect: iam.Effect.ALLOW,
+                actions: ["cognito-idp:*"],
+                resources: ["*"],
+              }),
+              new iam.PolicyStatement({
+                effect: iam.Effect.ALLOW,
+                actions: ["dynamodb:GetItem"],
+                resources: [tenantDetailsTableArn, tenantDetailsTableIndexArn],
+              }),
+              new iam.PolicyStatement({
+                effect: iam.Effect.ALLOW,
+                actions: ["dynamodb:GetItem", "dynamodb:Query"],
+                resources: [
+                  tenantUserMappingTableArn,
+                  tenantUserMappingTableIndexArn,
+                ],
+              }),
+            ],
+          }),
+        }
+      )
     );
 
     const createUserLambdaExecutionRole = new iam.Role(
       this,
-      "CreateUserLambdaExecutionRole",
+      generateLogicalId(
+        SystemProviderInfraStackNameDict.CreateUserLambdaExecutionRole,
+        tenantId
+      ),
       {
-        roleName: `create-user-lambda-execution-role-${cdk.Aws.REGION}`,
         path: "/",
         assumedBy: new iam.ServicePrincipal("lambda.amazonaws.com"),
         managedPolicies: [
@@ -192,37 +211,47 @@ export class SaaSProviderLambdaStack extends NestedStack {
     );
 
     createUserLambdaExecutionRole.attachInlinePolicy(
-      new iam.Policy(this, "CreateUserLambdaExecutionPolicy", {
-        document: new iam.PolicyDocument({
-          statements: [
-            new iam.PolicyStatement({
-              effect: iam.Effect.ALLOW,
-              actions: ["cognito-idp:*"],
-              resources: ["*"],
-            }),
-            new iam.PolicyStatement({
-              effect: iam.Effect.ALLOW,
-              actions: ["dynamodb:PutItem"],
-              resources: [
-                tenantUserMappingTableArn,
-                tenantUserMappingTableIndexArn,
-              ],
-            }),
-            new iam.PolicyStatement({
-              effect: iam.Effect.ALLOW,
-              actions: ["dynamodb:GetItem"],
-              resources: [tenantDetailsTableArn, tenantDetailsTableIndexArn],
-            }),
-          ],
-        }),
-      })
+      new iam.Policy(
+        this,
+        generateLogicalId(
+          SystemProviderInfraStackNameDict.CreateUserLambdaExecutionPolicy,
+          tenantId
+        ),
+
+        {
+          document: new iam.PolicyDocument({
+            statements: [
+              new iam.PolicyStatement({
+                effect: iam.Effect.ALLOW,
+                actions: ["cognito-idp:*"],
+                resources: ["*"],
+              }),
+              new iam.PolicyStatement({
+                effect: iam.Effect.ALLOW,
+                actions: ["dynamodb:PutItem"],
+                resources: [
+                  tenantUserMappingTableArn,
+                  tenantUserMappingTableIndexArn,
+                ],
+              }),
+              new iam.PolicyStatement({
+                effect: iam.Effect.ALLOW,
+                actions: ["dynamodb:GetItem"],
+                resources: [tenantDetailsTableArn, tenantDetailsTableIndexArn],
+              }),
+            ],
+          }),
+        }
+      )
     );
 
     const tenantManagementLambdaExecutionRole = new iam.Role(
       this,
-      "TenantManagementLambdaExecutionRole",
+      generateLogicalId(
+        SystemProviderInfraStackNameDict.TenantManagementLambdaExecutionRole,
+        tenantId
+      ),
       {
-        roleName: `tenant-management-lambda-execution-role-${cdk.Aws.REGION}`,
         path: "/",
         assumedBy: new iam.ServicePrincipal("lambda.amazonaws.com"),
         managedPolicies: [
@@ -238,32 +267,41 @@ export class SaaSProviderLambdaStack extends NestedStack {
     );
 
     tenantManagementLambdaExecutionRole.attachInlinePolicy(
-      new iam.Policy(this, "CreateTenantExecutionPolicy", {
-        statements: [
-          new iam.PolicyStatement({
-            effect: iam.Effect.ALLOW,
-            actions: [
-              "dynamodb:PutItem",
-              "dynamodb:GetItem",
-              "dynamodb:UpdateItem",
-              "dynamodb:Scan",
-              "dynamodb:Query",
-            ],
-            resources: [tenantDetailsTableArn, tenantDetailsTableIndexArn],
-          }),
-          new iam.PolicyStatement({
-            effect: iam.Effect.ALLOW,
-            actions: ["dynamodb:GetItem"],
-            resources: [serverlessSaaSSettingsTableArn],
-          }),
-        ],
-      })
+      new iam.Policy(
+        this,
+        generateLogicalId(
+          SystemProviderInfraStackNameDict.TenantManagementLambdaExecutionPolicy,
+          tenantId
+        ),
+        {
+          statements: [
+            new iam.PolicyStatement({
+              effect: iam.Effect.ALLOW,
+              actions: [
+                "dynamodb:PutItem",
+                "dynamodb:GetItem",
+                "dynamodb:UpdateItem",
+                "dynamodb:Scan",
+                "dynamodb:Query",
+              ],
+              resources: [tenantDetailsTableArn, tenantDetailsTableIndexArn],
+            }),
+            new iam.PolicyStatement({
+              effect: iam.Effect.ALLOW,
+              actions: ["dynamodb:GetItem"],
+              resources: [serverlessSaaSSettingsTableArn],
+            }),
+          ],
+        }
+      )
     );
     const registerTenantLambdaExecutionRole = new iam.Role(
       this,
-      "RegisterTenantLambdaExecutionRole",
+      generateLogicalId(
+        SystemProviderInfraStackNameDict.RegisterTenantLambdaExecutionRole,
+        tenantId
+      ),
       {
-        roleName: `tenant-registration-lambda-execution-role-${cdk.Aws.REGION}`,
         path: "/",
         assumedBy: new iam.ServicePrincipal("lambda.amazonaws.com"),
         managedPolicies: [
@@ -280,9 +318,11 @@ export class SaaSProviderLambdaStack extends NestedStack {
 
     const provisionTenantLambdaExecutionRole = new iam.Role(
       this,
-      "ProvisionTenantLambdaExecutionRole",
+      generateLogicalId(
+        SystemProviderInfraStackNameDict.ProvisionTenantLambdaExecutionRole,
+        tenantId
+      ),
       {
-        roleName: `tenant-provisioning-lambda-execution-role-${cdk.Aws.REGION}`,
         path: "/",
         assumedBy: new iam.ServicePrincipal("lambda.amazonaws.com"),
         managedPolicies: [
@@ -298,34 +338,43 @@ export class SaaSProviderLambdaStack extends NestedStack {
     );
 
     provisionTenantLambdaExecutionRole.attachInlinePolicy(
-      new iam.Policy(this, "ProvisionTenantLambdaExecutionPolicy", {
-        statements: [
-          new iam.PolicyStatement({
-            effect: iam.Effect.ALLOW,
-            actions: ["dynamodb:PutItem", "dynamodb:DeleteItem"],
-            resources: [tenantStackMappingTableArn],
-          }),
-          new iam.PolicyStatement({
-            effect: iam.Effect.ALLOW,
-            actions: ["codepipeline:StartPipelineExecution"],
-            resources: [
-              `arn:aws:codepipeline:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:${props.tenantProvisioningPipelineName}`,
-            ],
-          }),
-          new iam.PolicyStatement({
-            effect: iam.Effect.ALLOW,
-            actions: ["cloudformation:DeleteStack"],
-            resources: ["*"],
-          }),
-        ],
-      })
+      new iam.Policy(
+        this,
+        generateLogicalId(
+          SystemProviderInfraStackNameDict.ProvisionTenantLambdaExecutionPolicy,
+          tenantId
+        ),
+        {
+          statements: [
+            new iam.PolicyStatement({
+              effect: iam.Effect.ALLOW,
+              actions: ["dynamodb:PutItem", "dynamodb:DeleteItem"],
+              resources: [tenantStackMappingTableArn],
+            }),
+            new iam.PolicyStatement({
+              effect: iam.Effect.ALLOW,
+              actions: ["codepipeline:StartPipelineExecution"],
+              resources: [
+                `arn:aws:codepipeline:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:${props.tenantProvisioningPipelineName}`,
+              ],
+            }),
+            new iam.PolicyStatement({
+              effect: iam.Effect.ALLOW,
+              actions: ["cloudformation:DeleteStack"],
+              resources: ["*"],
+            }),
+          ],
+        }
+      )
     );
 
     const deProvisionTenantLambdaExecutionRole = new iam.Role(
       this,
-      "DeProvisionTenantLambdaExecutionRole",
+      generateLogicalId(
+        SystemProviderInfraStackNameDict.DeProvisionTenantLambdaExecutionRole,
+        tenantId
+      ),
       {
-        roleName: `tenant-deprovisioning-lambda-execution-role-${cdk.Aws.REGION}`,
         path: "/",
         assumedBy: new iam.ServicePrincipal("lambda.amazonaws.com"),
         managedPolicies: [
@@ -341,21 +390,30 @@ export class SaaSProviderLambdaStack extends NestedStack {
     );
 
     deProvisionTenantLambdaExecutionRole.attachInlinePolicy(
-      new iam.Policy(this, "DeProvisionTenantLambdaExecutionPolicy", {
-        statements: [
-          new iam.PolicyStatement({
-            effect: iam.Effect.ALLOW,
-            actions: ["*"],
-            resources: ["*"],
-          }),
-        ],
-      })
+      new iam.Policy(
+        this,
+        generateLogicalId(
+          SystemProviderInfraStackNameDict.DeProvisionTenantLambdaExecutionPolicy,
+          tenantId
+        ),
+        {
+          statements: [
+            new iam.PolicyStatement({
+              effect: iam.Effect.ALLOW,
+              actions: ["*"],
+              resources: ["*"],
+            }),
+          ],
+        }
+      )
     );
     const updateSettingsTableLambdaExecutionRole = new iam.Role(
       this,
-      "UpdateSettingsTableLambdaExecutionRole",
+      generateLogicalId(
+        SystemProviderInfraStackNameDict.UpdateSettingsTableLambdaExecutionRole,
+        tenantId
+      ),
       {
-        roleName: `update-settingstable-lambda-execution-role-${cdk.Aws.REGION}`,
         path: "/",
         assumedBy: new iam.ServicePrincipal("lambda.amazonaws.com"),
         managedPolicies: [
@@ -371,22 +429,31 @@ export class SaaSProviderLambdaStack extends NestedStack {
     );
 
     updateSettingsTableLambdaExecutionRole.attachInlinePolicy(
-      new iam.Policy(this, "UpdateSettingsTableLambdaExecutionPolicy", {
-        statements: [
-          new iam.PolicyStatement({
-            effect: iam.Effect.ALLOW,
-            actions: ["dynamodb:PutItem"],
-            resources: [serverlessSaaSSettingsTableArn],
-          }),
-        ],
-      })
+      new iam.Policy(
+        this,
+        generateLogicalId(
+          SystemProviderInfraStackNameDict.UpdateSettingsTableLambdaExecutionPolicy,
+          tenantId
+        ),
+        {
+          statements: [
+            new iam.PolicyStatement({
+              effect: iam.Effect.ALLOW,
+              actions: ["dynamodb:PutItem"],
+              resources: [serverlessSaaSSettingsTableArn],
+            }),
+          ],
+        }
+      )
     );
 
     const updateTenantStackMapTableLambdaExecutionRole = new iam.Role(
       this,
-      "UpdateTenantStackMapTableLambdaExecutionRole",
+      generateLogicalId(
+        SystemProviderInfraStackNameDict.UpdateTenantStackMapTableLambdaExecutionRole,
+        tenantId
+      ),
       {
-        roleName: `update-tenantstackmap-lambda-execution-role-${cdk.Aws.REGION}`,
         path: "/",
         assumedBy: new iam.ServicePrincipal("lambda.amazonaws.com"),
         managedPolicies: [
@@ -402,21 +469,29 @@ export class SaaSProviderLambdaStack extends NestedStack {
     );
 
     updateTenantStackMapTableLambdaExecutionRole.attachInlinePolicy(
-      new iam.Policy(this, "UpdateTenantStackMapTableLambdaExecutionPolicy", {
-        statements: [
-          new iam.PolicyStatement({
-            effect: iam.Effect.ALLOW,
-            actions: ["dynamodb:PutItem"],
-            resources: [tenantStackMappingTableArn],
-          }),
-        ],
-      })
+      new iam.Policy(
+        this,
+        generateLogicalId(
+          SystemProviderInfraStackNameDict.UpdateTenantStackMapTableLambdaExecutionPolicy,
+          tenantId
+        ),
+        {
+          statements: [
+            new iam.PolicyStatement({
+              effect: iam.Effect.ALLOW,
+              actions: ["dynamodb:PutItem"],
+              resources: [tenantStackMappingTableArn],
+            }),
+          ],
+        }
+      )
     );
 
     const sharedServicesAuthorizerFunction = createContaineredLambdaFunction(
       this,
       {
-        functionName: "sharedServicesAuthorizerFunction",
+        functionName:
+          SystemProviderInfraStackNameDict.sharedServicesAuthorizerFunction,
         lambdaEcrRepository: lambdaEcrRepository,
         imageTag: lambdaImageTag,
         handlerName: "shared_service_authorizer.lambda_handler",
@@ -440,13 +515,15 @@ export class SaaSProviderLambdaStack extends NestedStack {
         threshold: 0,
         statistic: cloudwatch.Statistic.SUM,
         period: cdk.Duration.seconds(60),
+        tenantId,
       }
     );
 
     const createTenantAdminUserFunction = createContaineredLambdaFunction(
       this,
       {
-        functionName: "createTenantAdminUserFunction",
+        functionName:
+          SystemProviderInfraStackNameDict.createTenantAdminUserFunction,
         lambdaEcrRepository: lambdaEcrRepository,
         imageTag: lambdaImageTag,
         handlerName: "user-management.create_tenant_admin_user",
@@ -475,13 +552,15 @@ export class SaaSProviderLambdaStack extends NestedStack {
         threshold: 0,
         statistic: cloudwatch.Statistic.SUM,
         period: cdk.Duration.seconds(60),
+        tenantId,
       }
     );
 
     const createTenantNormalUserFunction = createContaineredLambdaFunction(
       this,
       {
-        functionName: "createTenantNormalUserFunction",
+        functionName:
+          SystemProviderInfraStackNameDict.createTenantNormalUserFunction,
         lambdaEcrRepository: lambdaEcrRepository,
         imageTag: lambdaImageTag,
         handlerName: "user-management.create_user",
@@ -503,13 +582,15 @@ export class SaaSProviderLambdaStack extends NestedStack {
         threshold: 0,
         statistic: cloudwatch.Statistic.SUM,
         period: cdk.Duration.seconds(60),
+        tenantId,
       }
     );
 
     const updateTenantNormalUserFunction = createContaineredLambdaFunction(
       this,
       {
-        functionName: "updateTenantNormalUserFunction",
+        functionName:
+          SystemProviderInfraStackNameDict.updateTenantNormalUserFunction,
         lambdaEcrRepository: lambdaEcrRepository,
         imageTag: lambdaImageTag,
         handlerName: "user-management.update_user",
@@ -531,13 +612,15 @@ export class SaaSProviderLambdaStack extends NestedStack {
         threshold: 0,
         statistic: cloudwatch.Statistic.SUM,
         period: cdk.Duration.seconds(60),
+        tenantId,
       }
     );
 
     const disableTenantNormalUserFunction = createContaineredLambdaFunction(
       this,
       {
-        functionName: "disableTenantNormalUserFunction",
+        functionName:
+          SystemProviderInfraStackNameDict.disableTenantNormalUserFunction,
         lambdaEcrRepository: lambdaEcrRepository,
         imageTag: lambdaImageTag,
         handlerName: "user-management.disable_user",
@@ -559,10 +642,12 @@ export class SaaSProviderLambdaStack extends NestedStack {
         threshold: 0,
         statistic: cloudwatch.Statistic.SUM,
         period: cdk.Duration.seconds(60),
+        tenantId,
       }
     );
     const disableUsersByTenantFunction = createContaineredLambdaFunction(this, {
-      functionName: "disableUsersByTenantFunction",
+      functionName:
+        SystemProviderInfraStackNameDict.disableUsersByTenantFunction,
       lambdaEcrRepository: lambdaEcrRepository,
       imageTag: lambdaImageTag,
       handlerName: "user-management.disable_users_by_tenant",
@@ -583,9 +668,11 @@ export class SaaSProviderLambdaStack extends NestedStack {
       threshold: 0,
       statistic: cloudwatch.Statistic.SUM,
       period: cdk.Duration.seconds(60),
+      tenantId,
     });
     const enableUsersByTenantFunction = createContaineredLambdaFunction(this, {
-      functionName: "enableUsersByTenantFunction",
+      functionName:
+        SystemProviderInfraStackNameDict.enableUsersByTenantFunction,
       lambdaEcrRepository: lambdaEcrRepository,
       imageTag: lambdaImageTag,
       handlerName: "user-management.enable_users_by_tenant",
@@ -606,10 +693,11 @@ export class SaaSProviderLambdaStack extends NestedStack {
       threshold: 0,
       statistic: cloudwatch.Statistic.SUM,
       period: cdk.Duration.seconds(60),
+      tenantId,
     });
 
     const getUserFunction = createContaineredLambdaFunction(this, {
-      functionName: "getUserFunction",
+      functionName: SystemProviderInfraStackNameDict.getUserFunction,
       lambdaEcrRepository: lambdaEcrRepository,
       imageTag: lambdaImageTag,
       handlerName: "user-management.get_user",
@@ -630,10 +718,11 @@ export class SaaSProviderLambdaStack extends NestedStack {
       threshold: 0,
       statistic: cloudwatch.Statistic.SUM,
       period: cdk.Duration.seconds(60),
+      tenantId,
     });
 
     const getUsersFunction = createContaineredLambdaFunction(this, {
-      functionName: "getUsersFunction",
+      functionName: SystemProviderInfraStackNameDict.getUsersFunction,
       lambdaEcrRepository: lambdaEcrRepository,
       imageTag: lambdaImageTag,
       handlerName: "user-management.get_users",
@@ -654,10 +743,11 @@ export class SaaSProviderLambdaStack extends NestedStack {
       threshold: 0,
       statistic: cloudwatch.Statistic.SUM,
       period: cdk.Duration.seconds(60),
+      tenantId,
     });
     // Tenant Management
     const createTenantFunction = createContaineredLambdaFunction(this, {
-      functionName: "createTenantFunction",
+      functionName: SystemProviderInfraStackNameDict.createTenantFunction,
       lambdaEcrRepository: lambdaEcrRepository,
       imageTag: lambdaImageTag,
       handlerName: "tenant-management.create_tenant",
@@ -678,10 +768,11 @@ export class SaaSProviderLambdaStack extends NestedStack {
       threshold: 0,
       statistic: cloudwatch.Statistic.SUM,
       period: cdk.Duration.seconds(60),
+      tenantId,
     });
 
     const activateTenantFunction = createContaineredLambdaFunction(this, {
-      functionName: "activateTenantFunction",
+      functionName: SystemProviderInfraStackNameDict.activateTenantFunction,
       lambdaEcrRepository: lambdaEcrRepository,
       imageTag: lambdaImageTag,
       handlerName: "tenant-management.activate_tenant",
@@ -704,10 +795,11 @@ export class SaaSProviderLambdaStack extends NestedStack {
       threshold: 0,
       statistic: cloudwatch.Statistic.SUM,
       period: cdk.Duration.seconds(60),
+      tenantId,
     });
 
     const getTenantFunction = createContaineredLambdaFunction(this, {
-      functionName: "getTenantFunction",
+      functionName: SystemProviderInfraStackNameDict.getTenantFunction,
       lambdaEcrRepository: lambdaEcrRepository,
       imageTag: lambdaImageTag,
       handlerName: "tenant-management.get_tenant",
@@ -728,9 +820,10 @@ export class SaaSProviderLambdaStack extends NestedStack {
       threshold: 0,
       statistic: cloudwatch.Statistic.SUM,
       period: cdk.Duration.seconds(60),
+      tenantId,
     });
     const deactivateTenantFunction = createContaineredLambdaFunction(this, {
-      functionName: "deactivateTenantFunction",
+      functionName: SystemProviderInfraStackNameDict.deactivateTenantFunction,
       lambdaEcrRepository: lambdaEcrRepository,
       imageTag: lambdaImageTag,
       handlerName: "tenant-management.deactivate_tenant",
@@ -753,10 +846,11 @@ export class SaaSProviderLambdaStack extends NestedStack {
       threshold: 0,
       statistic: cloudwatch.Statistic.SUM,
       period: cdk.Duration.seconds(60),
+      tenantId,
     });
 
     const updateTenantFunction = createContaineredLambdaFunction(this, {
-      functionName: "updateTenantFunction",
+      functionName: SystemProviderInfraStackNameDict.updateTenantFunction,
       lambdaEcrRepository: lambdaEcrRepository,
       imageTag: lambdaImageTag,
       handlerName: "tenant-management.update_tenant",
@@ -781,10 +875,11 @@ export class SaaSProviderLambdaStack extends NestedStack {
       threshold: 0,
       statistic: cloudwatch.Statistic.SUM,
       period: cdk.Duration.seconds(60),
+      tenantId,
     });
 
     const getTenantsFunction = createContaineredLambdaFunction(this, {
-      functionName: "getTenantsFunction",
+      functionName: SystemProviderInfraStackNameDict.getTenantsFunction,
       lambdaEcrRepository: lambdaEcrRepository,
       imageTag: lambdaImageTag,
       handlerName: "tenant-management.get_tenants",
@@ -805,9 +900,10 @@ export class SaaSProviderLambdaStack extends NestedStack {
       threshold: 0,
       statistic: cloudwatch.Statistic.SUM,
       period: cdk.Duration.seconds(60),
+      tenantId,
     });
     const loadTenantConfigFunction = createContaineredLambdaFunction(this, {
-      functionName: "loadTenantConfigFunction",
+      functionName: SystemProviderInfraStackNameDict.loadTenantConfigFunction,
       lambdaEcrRepository: lambdaEcrRepository,
       imageTag: lambdaImageTag,
       handlerName: "tenant-management.load_tenant_config",
@@ -828,10 +924,11 @@ export class SaaSProviderLambdaStack extends NestedStack {
       threshold: 0,
       statistic: cloudwatch.Statistic.SUM,
       period: cdk.Duration.seconds(60),
+      tenantId,
     });
     //  #Tenant Registration
     const registerTenantFunction = createContaineredLambdaFunction(this, {
-      functionName: "registerTenantFunction",
+      functionName: SystemProviderInfraStackNameDict.registerTenantFunction,
       lambdaEcrRepository: lambdaEcrRepository,
       imageTag: lambdaImageTag,
       handlerName: "tenant-registration.register_tenant",
@@ -858,12 +955,13 @@ export class SaaSProviderLambdaStack extends NestedStack {
       threshold: 0,
       statistic: cloudwatch.Statistic.SUM,
       period: cdk.Duration.seconds(60),
+      tenantId,
     });
 
     // #Tenant Provisioning
 
     const provisionTenantFunction = createContaineredLambdaFunction(this, {
-      functionName: "provisionTenantFunction",
+      functionName: SystemProviderInfraStackNameDict.provisionTenantFunction,
       lambdaEcrRepository: lambdaEcrRepository,
       imageTag: lambdaImageTag,
       handlerName: "tenant-provisioning.provision_tenant",
@@ -884,10 +982,11 @@ export class SaaSProviderLambdaStack extends NestedStack {
       threshold: 0,
       statistic: cloudwatch.Statistic.SUM,
       period: cdk.Duration.seconds(60),
+      tenantId,
     });
 
     const deProvisionTenantFunction = createContaineredLambdaFunction(this, {
-      functionName: "deProvisionTenantFunction",
+      functionName: SystemProviderInfraStackNameDict.deProvisionTenantFunction,
       lambdaEcrRepository: lambdaEcrRepository,
       imageTag: lambdaImageTag,
       handlerName: "tenant-provisioning.deprovision_tenant",
@@ -908,10 +1007,12 @@ export class SaaSProviderLambdaStack extends NestedStack {
       threshold: 0,
       statistic: cloudwatch.Statistic.SUM,
       period: cdk.Duration.seconds(60),
+      tenantId,
     });
 
     const updateSettingsTableFunction = createContaineredLambdaFunction(this, {
-      functionName: "updateSettingsTableFunction",
+      functionName:
+        SystemProviderInfraStackNameDict.updateSettingsTableFunction,
       lambdaEcrRepository: lambdaEcrRepository,
       imageTag: lambdaImageTag,
       handlerName: "update_settings_table.handler",
@@ -930,12 +1031,14 @@ export class SaaSProviderLambdaStack extends NestedStack {
       threshold: 0,
       statistic: cloudwatch.Statistic.SUM,
       period: cdk.Duration.seconds(60),
+      tenantId,
     });
 
     const updateTenantStackMapTableFunction = createContaineredLambdaFunction(
       this,
       {
-        functionName: "updateTenantStackMapTableFunction",
+        functionName:
+          SystemProviderInfraStackNameDict.updateTenantStackMapTableFunction,
         lambdaEcrRepository: lambdaEcrRepository,
         imageTag: lambdaImageTag,
         handlerName: "update_tenantstackmap_table.handler",
@@ -954,6 +1057,7 @@ export class SaaSProviderLambdaStack extends NestedStack {
         threshold: 0,
         statistic: cloudwatch.Statistic.SUM,
         period: cdk.Duration.seconds(60),
+        tenantId,
       }
     );
 

@@ -1,8 +1,9 @@
 import { NestedStack } from "aws-cdk-lib";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
-import { TenantDataStackProps } from "shared/prop_extensions.types";
+import { TenantDataStackProps } from "@/shared/prop_extensions.types";
 import { Construct } from "constructs";
 import * as cdk from "aws-cdk-lib";
+import { generateLogicalId, generatePhysicalName } from "../utils/Utils";
 enum TableIdPrefix {
   Product = "Product",
   Order = "Order",
@@ -52,20 +53,24 @@ export class TenantDataStack extends NestedStack {
 
   private createTable(
     tableConfig: TableConfig,
-    tenantIdParameter: string
+    tenantId: string
   ): dynamodb.Table {
     const { tableIdPrefix, partitionKey, sortKey } = tableConfig;
 
-    const tableName = `${tableIdPrefix}-${tenantIdParameter}`;
+    const tableName = generatePhysicalName(tableIdPrefix, tenantId);
 
-    const table = new dynamodb.Table(this, `${tableIdPrefix}Table`, {
-      tableName,
-      partitionKey,
-      sortKey,
-      readCapacity: 5,
-      writeCapacity: 5,
-      removalPolicy: cdk.RemovalPolicy.DESTROY, //TODO: Choose the appropriate removal policy
-    });
+    const table = new dynamodb.Table(
+      this,
+      generateLogicalId(tableIdPrefix, tenantId),
+      {
+        tableName,
+        partitionKey,
+        sortKey,
+        readCapacity: 5,
+        writeCapacity: 5,
+        removalPolicy: cdk.RemovalPolicy.DESTROY, //TODO: Choose the appropriate removal policy
+      }
+    );
 
     return table;
   }

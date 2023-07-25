@@ -4,18 +4,33 @@ import { SystemProvisiongPipeline } from "../src/infra/SystemProvisiongPipeline"
 import { DeploymentStack } from "@/infra/service_provider_stacks/DeploymentStack";
 import { TenantProvisioningPipeline } from "@/infra/TenantProvisioningPipeline";
 import { TenantDeploymentStack } from "@/infra/tenant_stacks/TenantDeploymentStack";
+import {
+  SystemProviderProvisioningPipelineNameDict,
+  TenantProvisioningPipelineNameDict,
+} from "@/shared/Constants";
+import { Repository } from "aws-cdk-lib/aws-ecr";
+import { ECRStack } from "@/infra/service_provider_stacks/ECRStack";
 
 const app = new cdk.App();
-const tenantProvisoningPipelineName = `AwesomeTenantPipeline`;
-
+const tenantProvisoningPipelineName =
+  TenantProvisioningPipelineNameDict.tenantProvisiongPipelineName;
+const ecrStack = new ECRStack(app, "ecrStack", {
+  tags: {
+    environment: "development",
+  },
+});
+const lambdaECR = ecrStack.lambdaECR;
+const lambdaLayerECR = ecrStack.lambdaLayerECR;
 const systemProvisioningPipeline = new SystemProvisiongPipeline(
   app,
-  "systemProvisioningPipeline",
+  SystemProviderProvisioningPipelineNameDict.systemProviderProvisiongPipelineName,
   {
     tags: {
       environment: "development",
     },
     tenantProvisoningPipelineName,
+    lambdaECR,
+    lambdaLayerECR,
   }
 );
 
@@ -26,13 +41,13 @@ const systemProviderInfraStack = new DeploymentStack(
     tags: {
       environment: "development",
     },
-    lambdaEcrRepositoryUri: systemProvisioningPipeline.lambdaEcrRepositoryUri,
+    lambdaEcrRepositoryUri: lambdaECR.repositoryUri,
   }
 );
 
 const tenantProvisioningPipeline = new TenantProvisioningPipeline(
   app,
-  "tenantProvisioningPipeline",
+  TenantProvisioningPipelineNameDict.tenantProvisiongPipelineName,
   {
     tags: {
       environment: "development",
@@ -40,11 +55,16 @@ const tenantProvisioningPipeline = new TenantProvisioningPipeline(
     tenantProvisoningPipelineName,
   }
 );
+//TODO: doc it
+const tenantProviderInfraStackName = app.node.tryGetContext(
+  "tenantProviderInfraStackName"
+);
 
 const tenantProviderInfraStack = new TenantDeploymentStack(
   app,
   "tenantProviderInfraStack",
   {
+    stackName: tenantProviderInfraStackName,
     tags: {
       environment: "development",
     },

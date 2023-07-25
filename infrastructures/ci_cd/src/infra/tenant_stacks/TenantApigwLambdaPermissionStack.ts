@@ -1,7 +1,9 @@
 import { NestedStack } from "aws-cdk-lib";
 import { Construct } from "constructs";
-import { TenantApiLambdaPermissiontackProps } from "shared/prop_extensions.types";
+import { TenantApiLambdaPermissiontackProps } from "@/shared/prop_extensions.types";
 import { CfnPermission } from "aws-cdk-lib/aws-lambda";
+import { generateLogicalId } from "../utils/Utils";
+import { TenantSystemNameDict } from "@/shared/Constants";
 
 export class TenantApigwLambdaPermissionStack extends NestedStack {
   constructor(
@@ -23,6 +25,7 @@ export class TenantApigwLambdaPermissionStack extends NestedStack {
       updateProductFunctionArn,
       authorizerFunctionArn,
       tenantApiId,
+      tenantId,
     } = props;
 
     const lambdaFunctionArns: Record<string, string> = {
@@ -40,21 +43,36 @@ export class TenantApigwLambdaPermissionStack extends NestedStack {
 
     // Must use low level api otherwise no effect. https://github.com/aws/aws-cdk/issues/7588
     for (const key in lambdaFunctionArns) {
-      console.log(`tenantFunctionArn: ${key}`);
-      if (key === "authorizerFunction") {
-        new CfnPermission(this, `apigw-permission-${key}`, {
-          action: "lambda:InvokeFunction",
-          functionName: lambdaFunctionArns[key],
-          principal: "apigateway.amazonaws.com",
-          sourceArn: `arn:aws:execute-api:${this.region}:${this.account}:${tenantApiId}/authorizers/*`,
-        });
+      if (key === lambdaFunctionArns.authorizerFunction) {
+        new CfnPermission(
+          this,
+          generateLogicalId(
+            TenantSystemNameDict.apigwPermission,
+            tenantId,
+            key
+          ),
+          {
+            action: "lambda:InvokeFunction",
+            functionName: lambdaFunctionArns[key],
+            principal: "apigateway.amazonaws.com",
+            sourceArn: `arn:aws:execute-api:${this.region}:${this.account}:${tenantApiId}/authorizers/*`,
+          }
+        );
       } else {
-        new CfnPermission(this, `apigw-permission-${key}`, {
-          action: "lambda:InvokeFunction",
-          functionName: lambdaFunctionArns[key],
-          principal: "apigateway.amazonaws.com",
-          sourceArn: `arn:aws:execute-api:${this.region}:${this.account}:${tenantApiId}/*/*/*`,
-        });
+        new CfnPermission(
+          this,
+          generateLogicalId(
+            TenantSystemNameDict.apigwPermission,
+            tenantId,
+            key
+          ),
+          {
+            action: "lambda:InvokeFunction",
+            functionName: lambdaFunctionArns[key],
+            principal: "apigateway.amazonaws.com",
+            sourceArn: `arn:aws:execute-api:${this.region}:${this.account}:${tenantApiId}/*/*/*`,
+          }
+        );
       }
     }
   }

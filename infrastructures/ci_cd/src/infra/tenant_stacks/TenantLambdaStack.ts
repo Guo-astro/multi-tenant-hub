@@ -2,10 +2,12 @@ import * as cdk from "aws-cdk-lib";
 import * as iam from "aws-cdk-lib/aws-iam";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import { Construct } from "constructs";
-import { TenantFunctionStackProps } from "shared/prop_extensions.types";
+import { TenantFunctionStackProps } from "@/shared/prop_extensions.types";
 import { ComparisonOperator, Statistic } from "aws-cdk-lib/aws-cloudwatch";
 import { createFileBasedLambdaFunction } from "../utils/lambdaHelpers";
 import { LambdaDeploymentConfig } from "aws-cdk-lib/aws-codedeploy";
+import { TenantSystemNameDict } from "@/shared/Constants";
+import { generateLogicalId, generatePhysicalName } from "../utils/Utils";
 //TODO: add lambdaReserveConcurrency
 export class TenantLambdaStack extends cdk.NestedStack {
   public readonly productFunctionExecutionRoleArn: string;
@@ -29,18 +31,21 @@ export class TenantLambdaStack extends cdk.NestedStack {
       orderTable,
       productTable,
       isPooledDeploy,
-      systemProviderSettingsTableArn: serverlessSaaSSettingsTableArn,
+      serverlessSaaSSettingsTableArn,
       tenantDetailsTableArn,
     } = props;
 
     const baseLayer = lambda.LayerVersion.fromLayerVersionArn(
       this,
-      "LambdaInsightsExtensionLayer",
+      generateLogicalId(
+        TenantSystemNameDict.LambdaInsightsExtensionLayer,
+        tenantId
+      ),
       `arn:aws:lambda:${cdk.Aws.REGION}:580247275435:layer:LambdaInsightsExtension:14`
     );
     const customTenantLambdaLayer = new lambda.LayerVersion(
       this,
-      "customTenantLambdaLayer",
+      generateLogicalId(TenantSystemNameDict.customTenantLambdaLayer, tenantId),
       {
         description: "Utilities for project",
         code: lambda.Code.fromAsset("src/services/tenant_services/layers/", {
@@ -61,9 +66,12 @@ export class TenantLambdaStack extends cdk.NestedStack {
 
     const productFunctionExecutionRole = new iam.Role(
       this,
-      "productFunctionExecutionRole",
+      generateLogicalId(
+        TenantSystemNameDict.productFunctionExecutionRole,
+        tenantId
+      ),
+
       {
-        roleName: `${tenantId}-product-function-execution-role`,
         assumedBy: new iam.ServicePrincipal("lambda.amazonaws.com"),
         managedPolicies: [
           iam.ManagedPolicy.fromAwsManagedPolicyName(
@@ -81,11 +89,17 @@ export class TenantLambdaStack extends cdk.NestedStack {
     // ProductFunctionExecutionRolePolicy
     const productFunctionExecutionRolePolicy = new iam.Policy(
       this,
-      "productFunctionExecutionRolePolicy",
+      generateLogicalId(
+        TenantSystemNameDict.productFunctionExecutionRolePolicy,
+        tenantId
+      ),
+
       {
         roles: [productFunctionExecutionRole],
-        //TODO: doc it. we need the name to be specified for each tanant
-        policyName: `${tenantId}-product-function-execution-role-policy`,
+        policyName: generatePhysicalName(
+          TenantSystemNameDict.productFunctionExecutionRolePolicy,
+          tenantId
+        ),
         statements: [
           new iam.PolicyStatement({
             effect: iam.Effect.ALLOW,
@@ -111,7 +125,7 @@ export class TenantLambdaStack extends cdk.NestedStack {
     );
     // GetProductFunction
     const getProductFunction = createFileBasedLambdaFunction(scope, {
-      functionName: "GetProductFunction",
+      functionName: TenantSystemNameDict.GetProductFunction,
       handlerName: "product_service.get_product",
       runtime: lambda.Runtime.PYTHON_3_9,
       assetPath: "src/services/tenant_services/ProductService/",
@@ -133,11 +147,12 @@ export class TenantLambdaStack extends cdk.NestedStack {
       statistic: Statistic.SUM,
       period: cdk.Duration.seconds(60),
       layers: [baseLayer, customTenantLambdaLayer],
+      tenantId,
     });
 
     // GetProductsFunction
     const getProductsFunction = createFileBasedLambdaFunction(scope, {
-      functionName: "GetProductsFunction",
+      functionName: TenantSystemNameDict.GetProductsFunction,
       handlerName: "product_service.get_products",
       runtime: lambda.Runtime.PYTHON_3_9,
       assetPath: "src/services/tenant_services/ProductService/",
@@ -159,11 +174,12 @@ export class TenantLambdaStack extends cdk.NestedStack {
       statistic: Statistic.SUM,
       period: cdk.Duration.seconds(60),
       layers: [customTenantLambdaLayer, baseLayer],
+      tenantId,
     });
 
     // CreateProductFunction
     const createProductFunction = createFileBasedLambdaFunction(scope, {
-      functionName: "CreateProductFunction",
+      functionName: TenantSystemNameDict.CreateProductFunction,
       handlerName: "product_service.create_product",
       assetPath: "src/services/tenant_services/ProductService/",
       runtime: lambda.Runtime.PYTHON_3_9,
@@ -185,11 +201,12 @@ export class TenantLambdaStack extends cdk.NestedStack {
       statistic: Statistic.SUM,
       period: cdk.Duration.seconds(60),
       layers: [customTenantLambdaLayer, baseLayer],
+      tenantId,
     });
 
     // UpdateProductFunction
     const updateProductFunction = createFileBasedLambdaFunction(scope, {
-      functionName: "UpdateProductFunction",
+      functionName: TenantSystemNameDict.UpdateProductFunction,
       handlerName: "product_service.update_product",
       assetPath: "src/services/tenant_services/ProductService/",
       runtime: lambda.Runtime.PYTHON_3_9,
@@ -211,11 +228,12 @@ export class TenantLambdaStack extends cdk.NestedStack {
       statistic: Statistic.SUM,
       period: cdk.Duration.seconds(60),
       layers: [customTenantLambdaLayer, baseLayer],
+      tenantId,
     });
 
     // DeleteProductFunction
     const deleteProductFunction = createFileBasedLambdaFunction(scope, {
-      functionName: "DeleteProductFunction",
+      functionName: TenantSystemNameDict.DeleteProductFunction,
       handlerName: "product_service.delete_product",
       assetPath: "src/services/tenant_services/ProductService/",
       runtime: lambda.Runtime.PYTHON_3_9,
@@ -237,14 +255,17 @@ export class TenantLambdaStack extends cdk.NestedStack {
       statistic: Statistic.SUM,
       period: cdk.Duration.seconds(60),
       layers: [customTenantLambdaLayer, baseLayer],
+      tenantId,
     });
 
     // OrderFunctionExecutionRole
     const orderFunctionExecutionRole = new iam.Role(
       scope,
-      "OrderFunctionExecutionRole",
+      generateLogicalId(
+        TenantSystemNameDict.OrderFunctionExecutionRole,
+        tenantId
+      ),
       {
-        roleName: `${tenantId}-order-function-execution-role`,
         assumedBy: new iam.ServicePrincipal("lambda.amazonaws.com"),
         managedPolicies: [
           iam.ManagedPolicy.fromAwsManagedPolicyName(
@@ -261,10 +282,18 @@ export class TenantLambdaStack extends cdk.NestedStack {
     // ProductFunctionExecutionRolePolicy
     const orderFunctionExecutionRolePolicy = new iam.Policy(
       this,
-      "orderFunctionExecutionRolePolicy",
+      generateLogicalId(
+        TenantSystemNameDict.orderFunctionExecutionRolePolicy,
+        tenantId
+      ),
+
       {
         roles: [orderFunctionExecutionRole],
-        policyName: `${tenantId}-order-function-execution-role-policy`,
+
+        policyName: generatePhysicalName(
+          TenantSystemNameDict.orderFunctionExecutionRolePolicy,
+          tenantId
+        ),
         statements: [
           new iam.PolicyStatement({
             effect: iam.Effect.ALLOW,
@@ -291,7 +320,7 @@ export class TenantLambdaStack extends cdk.NestedStack {
 
     // GetOrdersFunction
     const getOrdersFunction = createFileBasedLambdaFunction(scope, {
-      functionName: "GetOrdersFunction",
+      functionName: TenantSystemNameDict.GetOrdersFunction,
       handlerName: "order_service.get_orders",
       assetPath: "src/services/tenant_services/OrderService/",
       runtime: lambda.Runtime.PYTHON_3_9,
@@ -313,11 +342,12 @@ export class TenantLambdaStack extends cdk.NestedStack {
       statistic: Statistic.SUM,
       period: cdk.Duration.seconds(60),
       layers: [customTenantLambdaLayer, baseLayer],
+      tenantId,
     });
 
     // GetOrderFunction
     const getOrderFunction = createFileBasedLambdaFunction(scope, {
-      functionName: "GetOrderFunction",
+      functionName: TenantSystemNameDict.GetOrderFunction,
       handlerName: "order_service.get_order",
       assetPath: "src/services/tenant_services/OrderService/",
       runtime: lambda.Runtime.PYTHON_3_9,
@@ -339,11 +369,12 @@ export class TenantLambdaStack extends cdk.NestedStack {
       statistic: Statistic.SUM,
       period: cdk.Duration.seconds(60),
       layers: [customTenantLambdaLayer, baseLayer],
+      tenantId,
     });
 
     // CreateOrderFunction
     const createOrderFunction = createFileBasedLambdaFunction(scope, {
-      functionName: "CreateOrderFunction",
+      functionName: TenantSystemNameDict.CreateOrderFunction,
       handlerName: "order_service.create_order",
       assetPath: "src/services/tenant_services/OrderService/",
       runtime: lambda.Runtime.PYTHON_3_9,
@@ -365,11 +396,12 @@ export class TenantLambdaStack extends cdk.NestedStack {
       statistic: Statistic.SUM,
       period: cdk.Duration.seconds(60),
       layers: [customTenantLambdaLayer, baseLayer],
+      tenantId,
     });
 
     // UpdateOrderFunction
     const updateOrderFunction = createFileBasedLambdaFunction(scope, {
-      functionName: "UpdateOrderFunction",
+      functionName: TenantSystemNameDict.UpdateOrderFunction,
       handlerName: "order_service.update_order",
       assetPath: "src/services/tenant_services/OrderService/",
       runtime: lambda.Runtime.PYTHON_3_9,
@@ -391,11 +423,12 @@ export class TenantLambdaStack extends cdk.NestedStack {
       statistic: Statistic.SUM,
       period: cdk.Duration.seconds(60),
       layers: [customTenantLambdaLayer, baseLayer],
+      tenantId,
     });
 
     // DeleteOrderFunction
     const deleteOrderFunction = createFileBasedLambdaFunction(scope, {
-      functionName: "DeleteOrderFunction",
+      functionName: TenantSystemNameDict.DeleteOrderFunction,
       handlerName: "order_service.delete_order",
       assetPath: "src/services/tenant_services/OrderService/",
       role: orderFunctionExecutionRole,
@@ -417,13 +450,16 @@ export class TenantLambdaStack extends cdk.NestedStack {
       statistic: Statistic.SUM,
       period: cdk.Duration.seconds(60),
       layers: [customTenantLambdaLayer, baseLayer],
+      tenantId,
     });
 
     const updateUsagePlanLambdaExecutionRole = new iam.Role(
       scope,
-      "UpdateUsagePlanLambdaExecutionRole",
+      generateLogicalId(
+        TenantSystemNameDict.UpdateUsagePlanLambdaExecutionRole,
+        tenantId
+      ),
       {
-        roleName: `${tenantId}-update-usage-plan-role`,
         path: "/",
         assumedBy: new iam.ServicePrincipal("lambda.amazonaws.com"),
         managedPolicies: [
@@ -487,7 +523,7 @@ export class TenantLambdaStack extends cdk.NestedStack {
     );
 
     const updateUsagePlanFunction = createFileBasedLambdaFunction(scope, {
-      functionName: "UpdateUsagePlanFunction",
+      functionName: TenantSystemNameDict.UpdateUsagePlanFunction,
       handlerName: "update_usage_plan.handler",
       assetPath: "src/services/tenant_services/",
       runtime: lambda.Runtime.PYTHON_3_9,
@@ -508,13 +544,16 @@ export class TenantLambdaStack extends cdk.NestedStack {
       statistic: Statistic.SUM,
       period: cdk.Duration.seconds(60),
       layers: [customTenantLambdaLayer, baseLayer],
+      tenantId,
     });
 
     const updateTenantApiGatewayUrlLambdaExecutionRole = new iam.Role(
       this,
-      "updateTenantApiGatewayUrlLambdaExecutionRole",
+      generateLogicalId(
+        TenantSystemNameDict.updateTenantApiGatewayUrlLambdaExecutionRole,
+        tenantId
+      ),
       {
-        roleName: `${tenantId}-apigwurl-lambda-exec-role`,
         assumedBy: new iam.ServicePrincipal("lambda.amazonaws.com"),
         managedPolicies: [
           iam.ManagedPolicy.fromAwsManagedPolicyName(
@@ -544,20 +583,28 @@ export class TenantLambdaStack extends cdk.NestedStack {
         ],
       });
     updateTenantApiGatewayUrlLambdaExecutionRole.attachInlinePolicy(
-      new iam.Policy(this, "updateTenantApiGatewayUrlLambdaExecutionPolicy", {
-        document: updateTenantApiGatewayUrlLambdaExecutionPolicy,
-      })
+      new iam.Policy(
+        this,
+        generateLogicalId(
+          TenantSystemNameDict.updateTenantApiGatewayUrlLambdaExecutionPolicy,
+          tenantId
+        ),
+        {
+          document: updateTenantApiGatewayUrlLambdaExecutionPolicy,
+        }
+      )
     );
     const updateTenantApiGatewayUrlFunction = createFileBasedLambdaFunction(
       scope,
       {
-        functionName: "updateTenantApiGatewayUrlFunction",
+        functionName: TenantSystemNameDict.updateTenantApiGatewayUrlFunction,
         handlerName: "update_tenant_apigatewayurl.handler",
         assetPath: "src/services/tenant_services/",
         runtime: lambda.Runtime.PYTHON_3_9,
         role: updateTenantApiGatewayUrlLambdaExecutionRole,
         tracing: lambda.Tracing.ACTIVE,
         environment: {
+          //TODO: fix it
           LOG_LEVEL: "DEBUG",
           POWERTOOLS_METRICS_NAMESPACE: "TenantStack",
         },
@@ -570,6 +617,7 @@ export class TenantLambdaStack extends cdk.NestedStack {
         statistic: Statistic.SUM,
         period: cdk.Duration.seconds(60),
         layers: [baseLayer, customTenantLambdaLayer],
+        tenantId,
       }
     );
 

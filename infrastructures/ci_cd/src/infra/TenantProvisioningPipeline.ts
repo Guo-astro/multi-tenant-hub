@@ -9,7 +9,6 @@ import * as ecr from "aws-cdk-lib/aws-ecr";
 import { SSMParameterReader } from "@/infra/utils/ssmParamReader";
 import { Bucket, BucketEncryption } from "aws-cdk-lib/aws-s3";
 import {
-  Code,
   FunctionUrlAuthType,
   LayerVersion,
   Runtime,
@@ -17,7 +16,13 @@ import {
 import { NodejsFunction } from "aws-cdk-lib/aws-lambda-nodejs";
 import path from "path";
 import { RetentionDays } from "aws-cdk-lib/aws-logs";
-import { TenantProvisioningPipelineProps } from "shared/prop_extensions.types";
+import { TenantProvisioningPipelineProps } from "@/shared/prop_extensions.types";
+import {
+  SharedCfnOutputs,
+  TenantProvisioningPipelineNameDict,
+  SystemProviderCfnOutputs,
+  TenantSystemNameDict,
+} from "@/shared/Constants";
 export class TenantProvisioningPipeline extends cdk.Stack {
   constructor(
     scope: Construct,
@@ -26,14 +31,18 @@ export class TenantProvisioningPipeline extends cdk.Stack {
   ) {
     super(scope, id, props);
 
-    const artifactsBucket = new Bucket(this, "artifactsBucketId", {
-      encryption: BucketEncryption.S3_MANAGED,
-    });
+    const artifactsBucket = new Bucket(
+      this,
+      TenantProvisioningPipelineNameDict.artifactsBucketId,
+      {
+        encryption: BucketEncryption.S3_MANAGED,
+      }
+    );
     const githubPATName = "dev/multi-tenant-saas";
     const githubAccessToken = SecretValue.secretsManager(githubPATName);
-    const owner = "Guo-astro";
-    const repo = "multi-tenant-hub";
-    const branch = "main";
+    const owner = TenantProvisioningPipelineNameDict.owner;
+    const repo = TenantProvisioningPipelineNameDict.repo;
+    const branch = TenantProvisioningPipelineNameDict.branch;
 
     //Since this lambda is invoking cloudformation which is inturn deploying AWS resources, we are giving overly permissive permissions to this lambda.
     //You can limit this based upon your use case and AWS Resources you need to deploy.
@@ -42,7 +51,7 @@ export class TenantProvisioningPipeline extends cdk.Stack {
     lambdaPolicy.addResources("*");
     const powertoolsLayer = LayerVersion.fromLayerVersionArn(
       this,
-      "powertoolsLayerId",
+      TenantProvisioningPipelineNameDict.powertoolsLayerId,
       `arn:aws:lambda:${
         cdk.Stack.of(this).region
       }:094274105915:layer:AWSLambdaPowertoolsTypeScript:12`
@@ -50,7 +59,7 @@ export class TenantProvisioningPipeline extends cdk.Stack {
 
     const tenantStackProvisioninglambdaFunction = new NodejsFunction(
       this,
-      "tenantStackProvisioninglambdaFunction",
+      TenantProvisioningPipelineNameDict.tenantStackProvisioninglambdaFunction,
       {
         bundling: {
           externalModules: ["@aws-lambda-powertools/logger", "@middy/core"],
@@ -58,40 +67,45 @@ export class TenantProvisioningPipeline extends cdk.Stack {
 
           sourceMap: true,
         },
-        entry: path.join(__dirname, "tenant_stacks", "index.ts"),
+        entry: path.join(__dirname, "tenant_stacks", "update_stack_handler.ts"),
         environment: {
           //TODO: seperate log level according to the environment variables
           LOG_LEVEL: "DEBUG",
           POWERTOOLS_LOGGER_LOG_EVENT: "true",
-          POWERTOOLS_SERVICE_NAME: `tenantStackProvisioninglambdaFunction`,
+          POWERTOOLS_SERVICE_NAME:
+            TenantProvisioningPipelineNameDict.tenantStackProvisioninglambdaFunction,
           BUCKET: artifactsBucket.bucketName,
           TENANT_DETAILS_TABLE_NAME: cdk.Fn.importValue(
-            "tenantDetailsTableName"
+            SystemProviderCfnOutputs.tenantDetailsTableName
           ),
           TENANT_STACK_MAPPING_TABLE_NAME: cdk.Fn.importValue(
-            "tenantStackMappingTableName"
+            SystemProviderCfnOutputs.tenantStackMappingTableName
           ),
           SYSTEM_SETTINGS_TABLE_NAME: cdk.Fn.importValue(
-            "serverlessSaaSSettingsTableName"
+            SystemProviderCfnOutputs.serverlessSaaSSettingsTableName
           ),
-          TENANT_DETAILS_TABLE_ARN: cdk.Fn.importValue("tenantDetailsTableArn"),
-          USAGE_PLAN_BASIC_TIER_ID: cdk.Fn.importValue("usagePlanBasicTierId"),
+          TENANT_DETAILS_TABLE_ARN: cdk.Fn.importValue(
+            SystemProviderCfnOutputs.tenantDetailsTableArn
+          ),
+          USAGE_PLAN_BASIC_TIER_ID: cdk.Fn.importValue(
+            SystemProviderCfnOutputs.usagePlanBasicTierId
+          ),
           USAGE_PLAN_STANDARD_TIER_ID: cdk.Fn.importValue(
-            "usagePlanStandardTierId"
+            SystemProviderCfnOutputs.usagePlanStandardTierId
           ),
           USAGE_PLAN_PREMIUM_TIER_ID: cdk.Fn.importValue(
-            "usagePlanPremiumTierId"
+            SystemProviderCfnOutputs.usagePlanPremiumTierId
           ),
 
           USAGE_PLAN_PLATINUM_TIER_ID: cdk.Fn.importValue(
-            "usagePlanPlatinumTierId"
+            SystemProviderCfnOutputs.usagePlanPlatinumTierId
           ),
           authorizerFunctionArnCfnParam: cdk.Fn.importValue(
-            "sharedServicesAuthorizerFunctionCfnOutput"
+            SystemProviderCfnOutputs.sharedServicesAuthorizerFunctionCfnOutput
           ),
           //TODO : fix value name
           systemSettingsTableArnCfnParam: cdk.Fn.importValue(
-            "serverlessSaaSSettingsTableArn"
+            SystemProviderCfnOutputs.serverlessSaaSSettingsTableArn
           ),
         },
         handler: "handler",
@@ -112,16 +126,20 @@ export class TenantProvisioningPipeline extends cdk.Stack {
         },
       });
 
-    new cdk.CfnOutput(this, "tenantStackProvisioninglambdaFunctionUrl", {
-      exportName: "tenantStackProvisioninglambdaFunctionUrl",
-      value: tenantStackProvisioninglambdaFunctionUrl.url,
-    });
+    new cdk.CfnOutput(
+      this,
+      TenantProvisioningPipelineNameDict.tenantStackProvisioninglambdaFunctionUrl,
+      {
+        exportName: SharedCfnOutputs.tenantStackProvisioninglambdaFunctionUrl,
+        value: tenantStackProvisioninglambdaFunctionUrl.url,
+      }
+    );
 
     //////////////////////////////////////////////////////
     const sourceOutput = new codepipeline.Artifact();
 
     const sourceAction = new codepipeline_actions.GitHubSourceAction({
-      actionName: "GitHub_Source",
+      actionName: TenantProvisioningPipelineNameDict.GitHub_Source,
       owner,
       repo,
       branch,
@@ -131,11 +149,14 @@ export class TenantProvisioningPipeline extends cdk.Stack {
     });
 
     // Declare build output as artifacts
-    const tenantStackBuildOutput = new codepipeline.Artifact();
     const tenantStackDeployOutput = new codepipeline.Artifact();
-    const myRole = new iam.Role(this, "MyRole", {
-      assumedBy: new iam.ServicePrincipal("codepipeline.amazonaws.com"),
-    });
+    const myRole = new iam.Role(
+      this,
+      TenantProvisioningPipelineNameDict.MyRole,
+      {
+        assumedBy: new iam.ServicePrincipal("codepipeline.amazonaws.com"),
+      }
+    );
 
     // Attach the necessary policies to the role
     myRole.addToPolicy(
@@ -146,7 +167,7 @@ export class TenantProvisioningPipeline extends cdk.Stack {
     );
 
     const tenantStackBuildAction = new codepipeline_actions.LambdaInvokeAction({
-      actionName: "tenantStackBuildAction",
+      actionName: TenantProvisioningPipelineNameDict.tenantStackBuildAction,
       lambda: tenantStackProvisioninglambdaFunction,
       inputs: [sourceOutput],
       outputs: [new codepipeline.Artifact("tenantStackBuildActionArtifact")],
@@ -155,52 +176,119 @@ export class TenantProvisioningPipeline extends cdk.Stack {
       },
     });
 
-    //Declare a new CodeBuild project
-    const tenant_stack_buildspec_path =
-      "infrastructures/ci_cd/src/infra/tenant_stacks/buildspec_tenant_infra_deployment.yml";
+    const buildspec = {
+      version: "0.2",
+      env: {
+        variables: {
+          VOLTA_HOME: "/root/.volta",
+        },
+      },
+      phases: {
+        pre_build: {
+          commands: [
+            "COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)",
+            "IMAGE_TAG=${COMMIT_HASH:=latest}",
+            // add more pre_build commands here
+          ],
+        },
+        build: {
+          path: "infrastructures/ci_cd/src/infra/tenant_stacks",
+          commands: [
+            "curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add -",
+            "apt-get update && apt-get install -y jq",
+            "curl https://get.volta.sh | bash",
+            'export PATH="$VOLTA_HOME/bin:$PATH"',
+            "volta install node@16.16.0",
+            "volta pin node@16.16.0",
+            "which npm",
+            "npm install -g pnpm",
+            "ls -al ..",
+            "ls -al",
+            "ls -al /root",
+            "ls -al /root/.volta",
+            "ls -al /root/.volta/bin",
+            "echo $PATH",
+            'export PATH="$NPM_BIN:$PATH"',
+            "echo $PATH",
+            "cd ./infrastructures/ci_cd",
+            "pnpm i",
+            `echo $${TenantSystemNameDict.tenanIdCfnParam}`,
+            `echo $${TenantSystemNameDict.authorizerFunctionArnCfnParam}`,
+            `echo $${TenantSystemNameDict.systemProviderSettingsTableNameCfnParam}`,
+
+            `echo $${TenantSystemNameDict.tenanIdCfnParam} | base64 -d | jq -r '.[]'`,
+            `echo "$${TenantSystemNameDict.tenanIdCfnParam}" | base64 -d | jq -c '.[]' | while read -r line; do
+              tenantId=$(echo "$line" | jq -r '.tenantId');
+              echo "Deploying stack for tenant: $tenantId";
+              echo $${TenantSystemNameDict.tenantDetailsTableNameCfnParam};
+              echo $${TenantSystemNameDict.tenantDetailsTableArnCfnParam};
+              echo $${TenantSystemNameDict.usagePlanBasicTierIdCfnParam};
+              echo $${TenantSystemNameDict.systemSettingsTableArnCfnParam};
+              echo $${TenantSystemNameDict.usagePlanStandardTierIdCfnParam};
+              echo $${TenantSystemNameDict.usagePlanPremiumTierIdCfnParam};
+              echo $${TenantSystemNameDict.usagePlanPlatinumTierIdCfnParam};
+              pnpx cdk deploy ${TenantProvisioningPipelineNameDict.tenantProviderInfraStack} --method=direct --require-approval never --parameters ${TenantSystemNameDict.tenanIdCfnParam}=$tenantId --parameters ${TenantSystemNameDict.authorizerFunctionArnCfnParam}=$${TenantSystemNameDict.authorizerFunctionArnCfnParam} --parameters ${TenantSystemNameDict.systemProviderSettingsTableNameCfnParam}=$${TenantSystemNameDict.systemProviderSettingsTableNameCfnParam} --parameters ${TenantSystemNameDict.tenantDetailsTableNameCfnParam}=$${TenantSystemNameDict.tenantDetailsTableNameCfnParam} --parameters ${TenantSystemNameDict.tenantDetailsTableArnCfnParam}=$${TenantSystemNameDict.tenantDetailsTableArnCfnParam} --parameters ${TenantSystemNameDict.usagePlanBasicTierIdCfnParam}=$${TenantSystemNameDict.usagePlanBasicTierIdCfnParam} --parameters ${TenantSystemNameDict.systemSettingsTableArnCfnParam}=$${TenantSystemNameDict.systemSettingsTableArnCfnParam} --parameters ${TenantSystemNameDict.usagePlanStandardTierIdCfnParam}=$${TenantSystemNameDict.usagePlanStandardTierIdCfnParam} --parameters ${TenantSystemNameDict.usagePlanPremiumTierIdCfnParam}=$${TenantSystemNameDict.usagePlanPremiumTierIdCfnParam} --parameters ${TenantSystemNameDict.usagePlanPlatinumTierIdCfnParam}=$${TenantSystemNameDict.usagePlanPlatinumTierIdCfnParam} --context ${TenantSystemNameDict.tenantProviderInfraStackName}=stack-$tenantId ;
+            done`,
+          ],
+        },
+      },
+    };
     const tenantStackDeployProject = new codebuild.PipelineProject(
       this,
-      "tenantStackDeployProject",
+      TenantProvisioningPipelineNameDict.tenantStackDeployProject,
       {
         cache: codebuild.Cache.local(codebuild.LocalCacheMode.DOCKER_LAYER),
 
-        buildSpec: codebuild.BuildSpec.fromSourceFilename(
-          tenant_stack_buildspec_path
-        ),
+        buildSpec: codebuild.BuildSpec.fromObject(buildspec),
         environment: {
           buildImage: codebuild.LinuxBuildImage.STANDARD_7_0,
-          //TODO: doc it. Cannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?
           privileged: true,
         },
         environmentVariables: {
           authorizerFunctionArnCfnParam: {
             value: cdk.Fn.importValue(
-              "sharedServicesAuthorizerFunctionCfnOutput"
+              SystemProviderCfnOutputs.sharedServicesAuthorizerFunctionCfnOutput
             ),
           },
           systemProviderSettingsTableNameCfnParam: {
-            value: cdk.Fn.importValue("serverlessSaaSSettingsTableName"),
+            value: cdk.Fn.importValue(
+              SystemProviderCfnOutputs.serverlessSaaSSettingsTableName
+            ),
           },
           tenantDetailsTableNameCfnParam: {
-            value: cdk.Fn.importValue("tenantDetailsTableName"),
+            value: cdk.Fn.importValue(
+              SystemProviderCfnOutputs.tenantDetailsTableName
+            ),
           },
           tenantDetailsTableArnCfnParam: {
-            value: cdk.Fn.importValue("tenantDetailsTableArn"),
+            value: cdk.Fn.importValue(
+              SystemProviderCfnOutputs.tenantDetailsTableArn
+            ),
           },
           usagePlanBasicTierIdCfnParam: {
-            value: cdk.Fn.importValue("usagePlanBasicTierId"),
+            value: cdk.Fn.importValue(
+              SystemProviderCfnOutputs.usagePlanBasicTierId
+            ),
           },
           systemSettingsTableArnCfnParam: {
-            value: cdk.Fn.importValue("serverlessSaaSSettingsTableArn"),
+            value: cdk.Fn.importValue(
+              SystemProviderCfnOutputs.serverlessSaaSSettingsTableArn
+            ),
           },
           usagePlanStandardTierIdCfnParam: {
-            value: cdk.Fn.importValue("usagePlanStandardTierId"),
+            value: cdk.Fn.importValue(
+              SystemProviderCfnOutputs.usagePlanStandardTierId
+            ),
           },
           usagePlanPremiumTierIdCfnParam: {
-            value: cdk.Fn.importValue("usagePlanPremiumTierId"),
+            value: cdk.Fn.importValue(
+              SystemProviderCfnOutputs.usagePlanPremiumTierId
+            ),
           },
           usagePlanPlatinumTierIdCfnParam: {
-            value: cdk.Fn.importValue("usagePlanPlatinumTierId"),
+            value: cdk.Fn.importValue(
+              SystemProviderCfnOutputs.usagePlanPlatinumTierId
+            ),
           },
         },
       }
@@ -210,36 +298,46 @@ export class TenantProvisioningPipeline extends cdk.Stack {
       resources: ["*"],
       actions: ["cloudformation:*", "s3:*", "iam:*", "ssm:GetParameter"],
     });
+
     tenantStackDeployProject.addToRolePolicy(infraDeploymentRolePolicy);
     const tenantStackDeployAction = new codepipeline_actions.CodeBuildAction({
-      actionName: "tenantStackDeployAction",
+      actionName: TenantProvisioningPipelineNameDict.tenantStackDeployAction,
       project: tenantStackDeployProject,
       input: sourceOutput,
       outputs: [tenantStackDeployOutput],
+
       environmentVariables: {
         tenanIdCfnParam: {
           value: tenantStackBuildAction.variable("tenanIdCfnParam"),
         },
       },
     });
-    const tenantpipeline = new codepipeline.Pipeline(this, "tenantpipeline", {
-      artifactBucket: artifactsBucket,
-      pipelineName: props.tenantProvisoningPipelineName,
-      role: myRole,
-      stages: [
-        {
-          stageName: "Source",
-          actions: [sourceAction],
-        },
-        {
-          stageName: "tenantStackBuildAction",
-          actions: [tenantStackBuildAction],
-        },
-        {
-          stageName: "tenantStackDeployAction",
-          actions: [tenantStackDeployAction],
-        },
-      ],
-    });
+    const tenantpipeline = new codepipeline.Pipeline(
+      this,
+      TenantProvisioningPipelineNameDict.tenantpipeline,
+      {
+        artifactBucket: artifactsBucket,
+        crossAccountKeys: false,
+        restartExecutionOnUpdate: true,
+        pipelineName: props.tenantProvisoningPipelineName,
+        role: myRole,
+        stages: [
+          {
+            stageName: TenantProvisioningPipelineNameDict.Source,
+            actions: [sourceAction],
+          },
+          {
+            stageName:
+              TenantProvisioningPipelineNameDict.tenantStackBuildAction,
+            actions: [tenantStackBuildAction],
+          },
+          {
+            stageName:
+              TenantProvisioningPipelineNameDict.tenantStackDeployAction,
+            actions: [tenantStackDeployAction],
+          },
+        ],
+      }
+    );
   }
 }
