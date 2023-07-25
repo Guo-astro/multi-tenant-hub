@@ -70,6 +70,7 @@ const tenantProviderInfraStack = new TenantDeploymentStack(
     },
   }
 );
+new SaasCostByTenantStack(app, "SaasCostByTenantStack");
 
 cdk.Tags.of(systemProvisioningPipeline).add("environment", "dev");
 cdk.Tags.of(tenantProvisioningPipeline).add("environment", "dev");
