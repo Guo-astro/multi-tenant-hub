@@ -102,7 +102,7 @@ export class TenantProvisioningPipeline extends cdk.Stack {
             SystemProviderCfnOutputs.usagePlanPlatinumTierId
           ),
           authorizerFunctionArnCfnParam: cdk.Fn.importValue(
-            SystemProviderCfnOutputs.sharedServicesAuthorizerFunctionCfnOutput
+            SystemProviderCfnOutputs.businessServicesAuthorizerFunctionCfnOutput
           ),
           //TODO : fix value name
           systemSettingsTableArnCfnParam: cdk.Fn.importValue(
@@ -255,7 +255,7 @@ export class TenantProvisioningPipeline extends cdk.Stack {
         environmentVariables: {
           authorizerFunctionArnCfnParam: {
             value: cdk.Fn.importValue(
-              SystemProviderCfnOutputs.sharedServicesAuthorizerFunctionCfnOutput
+              SystemProviderCfnOutputs.businessServicesAuthorizerFunctionCfnOutput
             ),
           },
           systemProviderSettingsTableNameCfnParam: {

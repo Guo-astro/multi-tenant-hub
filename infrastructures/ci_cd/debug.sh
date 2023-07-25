@@ -49,25 +49,20 @@ curl 'https://lgimm0nahb.execute-api.ap-northeast-1.amazonaws.com/prod/tenants' 
   "credentials": "omit"
 });
 
-
-fetch("https://r34ktvtpai.execute-api.ap-northeast-1.amazonaws.com/development/products", {
-  "headers": {
-    "accept": "application/json, text/plain, */*",
-    "accept-language": "en,ja;q=0.9",
-    "authorization": "
-    Bearer eyJraWQiOiJIRlFrMkV4U1gxTVwvZ1pJZ1ZZMGcwdTY2T04xMGFJcmtNeEFSWmd2RmJVQT0iLCJhbGciOiJSUzI1NiJ9.eyJzdWIiOiIxNzU0YWE2OC1kMDQxLTcwMzQtYWE0Ny0zZTNlNWUyN2JjNjQiLCJjb2duaXRvOmdyb3VwcyI6WyJkMmJkMTY2YjJiMDgxMWVlYWNjNGJkMmU1NjQzZThjNSJdLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwiaXNzIjoiaHR0cHM6XC9cL2NvZ25pdG8taWRwLmFwLW5vcnRoZWFzdC0xLmFtYXpvbmF3cy5jb21cL2FwLW5vcnRoZWFzdC0xX2RWSFRpSFBldyIsImNvZ25pdG86dXNlcm5hbWUiOiJ0ZW5hbnQtYWRtaW4tZDJiZDE2NmIyYjA4MTFlZWFjYzRiZDJlNTY0M2U4YzUiLCJvcmlnaW5fanRpIjoiMGYwOTRkZjktZjY4YS00NmQ4LWJiYTctOTRhNmEwY2E2NTk1IiwiY3VzdG9tOnRlbmFudElkIjoiZDJiZDE2NmIyYjA4MTFlZWFjYzRiZDJlNTY0M2U4YzUiLCJhdWQiOiIydWlzaDczb24wcmEzbHB2OGFsZmg5dWdrbCIsImV2ZW50X2lkIjoiMjMwMTUwYzAtOGFhMy00MWZiLWI3MGItYTUxZDcxNjgyMDgyIiwiY3VzdG9tOnVzZXJSb2xlIjoiVGVuYW50QWRtaW4iLCJ0b2tlbl91c2UiOiJpZCIsImF1dGhfdGltZSI6MTY5MDMxNTk3OSwiZXhwIjoxNjkwMzE5NTc5LCJpYXQiOjE2OTAzMTU5NzksImp0aSI6ImIwYmY4OTJlLWFkYTMtNGQ4ZS1hZTI0LTRlM2FjZTY1YzNmYSIsImVtYWlsIjoiZ3VvLnlhbnNvbmcubmd5QGdtYWlsLmNvbSJ9.s53V2RygHrBuQbqZCzUMZNlRR2aSpLQJyVfC1N9AX3WPgIfYEbGqwxZ0F2-XDtP9AWdyh0OUBMKTLTSdbieeS64iRuWXaECe12yl4-e6DdNl96yJpTR7cRUMDYLvtoAL6lsoMDxCIhjZiqDD-77CgtTDrWuFxaHs_C2YEl7XxMWzLA_EI2coWbdMqqw_2KbZMwcuUyquZdTLzAHEiOVE00yCMnRBaWuhlGEDI92nTUoDBH88bO67r8s2ScSQbtsjsRumylaeU9KgNqOLhylKLmDNPQjZF5X2w2P2To6dk3-V9UdGpkKxcUYOYQfUShDRsaV7BIWyh9hxO26Yec-pBA
-    ",
-    "sec-ch-ua": "\"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"114\", \"Google Chrome\";v=\"114\"",
-    "sec-ch-ua-mobile": "?0",
-    "sec-ch-ua-platform": "\"macOS\"",
-    "sec-fetch-dest": "empty",
-    "sec-fetch-mode": "cors",
-    "sec-fetch-site": "cross-site"
-  },
-  "referrer": "https://d3dfzhe57fw4yo.cloudfront.net/",
-  "referrerPolicy": "strict-origin-when-cross-origin",
-  "body": null,
-  "method": "GET",
-  "mode": "cors",
-  "credentials": "include"
-});
+curl 'https://r34ktvtpai.execute-api.ap-northeast-1.amazonaws.com/development/products' \
+  -H 'authority: r34ktvtpai.execute-api.ap-northeast-1.amazonaws.com' \
+  -H 'accept: application/json, text/plain, */*' \
+  -H 'accept-language: en,ja;q=0.9' \
+  -H 'authorization:
+Bearer eyJraWQiOiJIRlFrMkV4U1gxTVwvZ1pJZ1ZZMGcwdTY2T04xMGFJcmtNeEFSWmd2RmJVQT0iLCJhbGciOiJSUzI1NiJ9.eyJzdWIiOiIxNzU0YWE2OC1kMDQxLTcwMzQtYWE0Ny0zZTNlNWUyN2JjNjQiLCJjb2duaXRvOmdyb3VwcyI6WyJkMmJkMTY2YjJiMDgxMWVlYWNjNGJkMmU1NjQzZThjNSJdLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwiaXNzIjoiaHR0cHM6XC9cL2NvZ25pdG8taWRwLmFwLW5vcnRoZWFzdC0xLmFtYXpvbmF3cy5jb21cL2FwLW5vcnRoZWFzdC0xX2RWSFRpSFBldyIsImNvZ25pdG86dXNlcm5hbWUiOiJ0ZW5hbnQtYWRtaW4tZDJiZDE2NmIyYjA4MTFlZWFjYzRiZDJlNTY0M2U4YzUiLCJvcmlnaW5fanRpIjoiMGYwOTRkZjktZjY4YS00NmQ4LWJiYTctOTRhNmEwY2E2NTk1IiwiY3VzdG9tOnRlbmFudElkIjoiZDJiZDE2NmIyYjA4MTFlZWFjYzRiZDJlNTY0M2U4YzUiLCJhdWQiOiIydWlzaDczb24wcmEzbHB2OGFsZmg5dWdrbCIsImV2ZW50X2lkIjoiMjMwMTUwYzAtOGFhMy00MWZiLWI3MGItYTUxZDcxNjgyMDgyIiwiY3VzdG9tOnVzZXJSb2xlIjoiVGVuYW50QWRtaW4iLCJ0b2tlbl91c2UiOiJpZCIsImF1dGhfdGltZSI6MTY5MDMxNTk3OSwiZXhwIjoxNjkwMzI0NDI0LCJpYXQiOjE2OTAzMjA4MjQsImp0aSI6IjZhOGZhODc3LTkxMDgtNDExMS04MDE5LWZhOGRmNDQ0ZDlkZiIsImVtYWlsIjoiZ3VvLnlhbnNvbmcubmd5QGdtYWlsLmNvbSJ9.eqLIkPXRoiwwPsei0cVUHgKbWCvKZHpfiDsgnah6vExWKRvBSvpK_tdQ4NOGVsqon4fnNVHnmRCR6LQ5ft8bfXC2qVnWba4gtUNoLDP_qHsgktz-JF8Q1PVpRrdiyuOjLd8ZUwRB7VLWPDzgd0PtIjTdgbeDnKP5faeRKPX5D3SlyPtJGYPmsmbYQ-Z-OUlhTcqlb4FMoS-U1acc7acVQiSyTe01ehTp5CuFN3k1p5_NzDndHxu7BAN_uNvDXkT9nffjb32zaHf5CugAt6-6GgWznrr0dUow_MDrEAA98dcDeX4nnR4a0SAS0Sg_CcEEYOB9IVGDSJ4M8MyWFK_fiw
+  ' \
+  -H 'origin: https://d3dfzhe57fw4yo.cloudfront.net' \
+  -H 'referer: https://d3dfzhe57fw4yo.cloudfront.net/' \
+  -H 'sec-ch-ua: "Not.A/Brand";v="8", "Chromium";v="114", "Google Chrome";v="114"' \
+  -H 'sec-ch-ua-mobile: ?0' \
+  -H 'sec-ch-ua-platform: "macOS"' \
+  -H 'sec-fetch-dest: empty' \
+  -H 'sec-fetch-mode: cors' \
+  -H 'sec-fetch-site: cross-site' \
+  -H 'user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36' \
+  --compressed

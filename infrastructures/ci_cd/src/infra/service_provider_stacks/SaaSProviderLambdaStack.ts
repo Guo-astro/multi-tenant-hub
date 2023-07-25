@@ -35,6 +35,7 @@ export class SaaSProviderLambdaStack extends NestedStack {
   public readonly updateSettingsTableFunctionArn: string;
   public readonly updateTenantStackMapTableFunctionArn: string;
   public readonly sharedServicesAuthorizerFunctionArn: string;
+  public readonly businessServicesAuthorizerFunctionArn: string;
   constructor(scope: Construct, id: string, props: LambdaStackProps) {
     super(scope, id, props);
 
@@ -115,23 +116,30 @@ export class SaaSProviderLambdaStack extends NestedStack {
       })
     );
 
-    authorizerExecutionRole.addToPolicy(
-      new iam.PolicyStatement({
-        effect: iam.Effect.ALLOW,
-        actions: [
-          "dynamodb:BatchGetItem",
-          "dynamodb:GetItem",
-          "dynamodb:PutItem",
-          "dynamodb:DeleteItem",
-          "dynamodb:UpdateItem",
-          "dynamodb:Query",
-          "dynamodb:Scan",
-        ],
-        resources: [
-          `arn:aws:dynamodb:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:table/*`,
-        ],
-      })
-    );
+    const authorizerAccessRole = new iam.Role(this, "AuthorizerAccessRole", {
+      assumedBy: new iam.ArnPrincipal(authorizerExecutionRole.roleArn),
+      path: "/",
+    });
+
+    // Define the IAM policy with the required actions and resources
+    const policy = new iam.PolicyStatement({
+      effect: iam.Effect.ALLOW,
+      actions: [
+        "dynamodb:BatchGetItem",
+        "dynamodb:GetItem",
+        "dynamodb:PutItem",
+        "dynamodb:DeleteItem",
+        "dynamodb:UpdateItem",
+        "dynamodb:Query",
+        "dynamodb:Scan",
+      ],
+      resources: [
+        `arn:aws:dynamodb:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:table/*`,
+      ],
+    });
+
+    // Attach the policy to the role
+    authorizerAccessRole.addToPolicy(policy);
 
     const tenantUserPoolLambdaExecutionRole = new iam.Role(
       this,
@@ -518,7 +526,39 @@ export class SaaSProviderLambdaStack extends NestedStack {
         tenantId,
       }
     );
+    sharedServicesAuthorizerFunction.node.addDependency(authorizerAccessRole);
 
+    const businessServicesAuthorizerFunction = createContaineredLambdaFunction(
+      this,
+      {
+        functionName:
+          SystemProviderInfraStackNameDict.businessServicesAuthorizerFunction,
+        lambdaEcrRepository: lambdaEcrRepository,
+        imageTag: lambdaImageTag,
+        handlerName: "tenant_authorizer.lambda_handler",
+        role: authorizerExecutionRole,
+        tracing: lambda.Tracing.ACTIVE,
+
+        environment: {
+          OPERATION_USERS_USER_POOL: cognitoOperationUsersUserPoolId,
+          OPERATION_USERS_APP_CLIENT: cognitoOperationUsersUserPoolClientId,
+          OPERATION_USERS_API_KEY: apiKeyOperationUsersParameter,
+        },
+        aliasName: "live",
+        deploymentConfig:
+          codedeploy.LambdaDeploymentConfig.LINEAR_10PERCENT_EVERY_1MINUTE,
+        alarmDescription: "Lambda function canary errors",
+        comparisonOperator:
+          cloudwatch.ComparisonOperator.GREATER_THAN_THRESHOLD,
+        evaluationPeriods: 2,
+        threshold: 0,
+        statistic: cloudwatch.Statistic.SUM,
+        period: cdk.Duration.seconds(60),
+        tenantId,
+      }
+    );
+
+    businessServicesAuthorizerFunction.node.addDependency(authorizerAccessRole);
     const createTenantAdminUserFunction = createContaineredLambdaFunction(
       this,
       {
@@ -1088,6 +1128,8 @@ export class SaaSProviderLambdaStack extends NestedStack {
       enableUsersByTenantFunction.functionArn;
     this.sharedServicesAuthorizerFunctionArn =
       sharedServicesAuthorizerFunction.functionArn;
+    this.businessServicesAuthorizerFunctionArn =
+      businessServicesAuthorizerFunction.functionArn;
     this.updateSettingsTableFunctionArn =
       updateSettingsTableFunction.functionArn;
     this.updateTenantStackMapTableFunctionArn =

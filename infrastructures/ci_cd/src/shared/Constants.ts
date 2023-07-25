@@ -27,6 +27,8 @@ export const SystemProviderCfnOutputs = {
   usagePlanSystemAdminId: "usagePlanSystemAdminId",
   sharedServicesAuthorizerFunctionCfnOutput:
     "sharedServicesAuthorizerFunctionCfnOutput",
+  businessServicesAuthorizerFunctionCfnOutput:
+    "businessServicesAuthorizerFunctionCfnOutput",
 };
 
 export const SystemProviderInfraStackNameDict = {
@@ -115,6 +117,8 @@ export const SystemProviderInfraStackNameDict = {
     "UpdateTenantStackMapTableLambdaExecutionPolicy",
 
   sharedServicesAuthorizerFunction: "sharedServicesAuthorizerFunction",
+  businessServicesAuthorizerFunction: "businessServicesAuthorizerFunction",
+
   createTenantAdminUserFunction: "createTenantAdminUserFunction",
   createUserFunction: "createUserFunction",
   registerTenantFunction: "registerTenantFunction",

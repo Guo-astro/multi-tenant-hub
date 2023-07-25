@@ -242,6 +242,20 @@ export class DeploymentStack extends cdk.Stack {
         ),
       },
     });
+
+    createCfnOutputIfNotExists(this, {
+      id: generateLogicalId(
+        SystemProviderCfnOutputs.businessServicesAuthorizerFunctionCfnOutput,
+        tenantId
+      ),
+      props: {
+        description: "Function Arn to be used cross stack",
+        value: functionStack.bu,
+        exportName: generateCfnExportName(
+          SystemProviderCfnOutputs.businessServicesAuthorizerFunctionCfnOutput
+        ),
+      },
+    });
     const apiStack = new SystemProviderAPIStack(
       this,
       generateLogicalId(SystemProviderInfraStackNameDict.apigwStack, tenantId),
