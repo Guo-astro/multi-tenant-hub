@@ -5,7 +5,6 @@ import * as iam from "aws-cdk-lib/aws-iam";
 import * as codepipeline_actions from "aws-cdk-lib/aws-codepipeline-actions";
 import * as codebuild from "aws-cdk-lib/aws-codebuild";
 import * as codepipeline from "aws-cdk-lib/aws-codepipeline";
-import * as ecr from "aws-cdk-lib/aws-ecr";
 import { SystemProvisiongPipelineProps } from "@/shared/prop_extensions.types";
 import {
   SystemProviderCfnOutputs,
@@ -15,9 +14,9 @@ import {
   TenantSystemNameDict,
 } from "@/shared/Constants";
 import { generateLogicalId, generatePhysicalName } from "./utils/Utils";
+import { createPipelineUpdateAction } from "./utils/pipelineHelper";
 
 export class SystemProvisiongPipeline extends cdk.Stack {
-  cdkBuildOutput: cdk.aws_codepipeline.Artifact;
   constructor(
     scope: Construct,
     id: string,
@@ -45,65 +44,13 @@ export class SystemProvisiongPipeline extends cdk.Stack {
       oauthToken: githubAccessToken,
       output: sourceOutput,
     });
-    this.cdkBuildOutput = new codepipeline.Artifact("pipeline-cdk-build");
-    const pipeline_update_action_buildspec = {
-      version: "0.2",
-      env: {
-        variables: {
-          VOLTA_HOME: "/root/.volta",
-        },
-      },
-      artifacts: {
-        files: ["./infrastructures/ci_cd/cdk.out/*"],
-        name: "pipeline-build-artifacts",
-      },
-      phases: {
-        pre_build: {
-          commands: [
-            "COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)",
-            "IMAGE_TAG=${COMMIT_HASH:=latest}",
-          ],
-        },
-        build: {
-          commands: [
-            "curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add -",
-            "apt-get update && apt-get install -y jq",
-            "curl https://get.volta.sh | bash",
-            'export PATH="$VOLTA_HOME/bin:$PATH"',
-            `volta install node@16.16.0`,
-            `volta pin node@16.16.0`,
-            `which npm`,
-            `npm install -g pnpm`,
-            `ls -al ..`,
-            `ls -al`,
-            `ls -al /root`,
-            `ls -al /root/.volta`,
-            `ls -al /root/.volta/bin`,
-            `echo $PATH`,
-            `export PATH="$NPM_BIN:$PATH"`,
-            `echo $PATH`,
-            `cd ./infrastructures/ci_cd`,
-            `pnpm i`,
-            `pnpm run cdk -- synth ${SystemProviderInfraStackNameDict.systemProviderInfraStack} --method=direct --require-approval never`,
-          ],
-        },
-      },
-    };
-
-    const pipeline_update_action = new codepipeline_actions.CodeBuildAction({
-      actionName: "pipeline-update",
-      input: sourceOutput,
-      outputs: [this.cdkBuildOutput],
-      project: new codebuild.PipelineProject(this, "CdkBuildProject", {
-        environment: {
-          buildImage: codebuild.LinuxBuildImage.STANDARD_7_0,
-          privileged: true,
-        },
-        buildSpec: codebuild.BuildSpec.fromObject(
-          pipeline_update_action_buildspec
-        ),
-      }),
-    });
+    const cdkBuildOutput = new codepipeline.Artifact("pipeline-cdk-build");
+    const pipeline_update_action = createPipelineUpdateAction(
+      this,
+      sourceOutput,
+      SystemProviderInfraStackNameDict.systemProviderInfraStack,
+      cdkBuildOutput
+    );
 
     //////////////////Build python lambda layer////////////////////
     const buildspec_lambda_layer_docker_path =
@@ -786,7 +733,7 @@ export class SystemProvisiongPipeline extends cdk.Stack {
                 stackName:
                   SystemProviderProvisioningPipelineNameDict.systemProviderProvisiongPipelineName,
 
-                templatePath: this.cdkBuildOutput.atPath(
+                templatePath: cdkBuildOutput.atPath(
                   `infrastructures/ci_cd/cdk.out/systemProvisioningPipeline.template.json`
                 ),
                 adminPermissions: true,
