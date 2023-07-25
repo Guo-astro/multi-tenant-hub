@@ -10,6 +10,7 @@ import {
 } from "@/shared/Constants";
 import { Repository } from "aws-cdk-lib/aws-ecr";
 import { ECRStack } from "@/infra/service_provider_stacks/ECRStack";
+import { SaasCostByTenantStack } from "@/infra/cost_analysis_stacks/SaasCostByTenantStack";
 
 const app = new cdk.App();
 const tenantProvisoningPipelineName =
@@ -70,13 +71,17 @@ const tenantProviderInfraStack = new TenantDeploymentStack(
     },
   }
 );
-new SaasCostByTenantStack(app, "SaasCostByTenantStack");
+const saasCostByTenantStack = new SaasCostByTenantStack(
+  app,
+  "SaasCostByTenantStack"
+);
 
 cdk.Tags.of(systemProvisioningPipeline).add("environment", "dev");
 cdk.Tags.of(tenantProvisioningPipeline).add("environment", "dev");
 
 cdk.Tags.of(systemProviderInfraStack).add("environment", "dev");
 cdk.Tags.of(tenantProviderInfraStack).add("environment", "dev");
+cdk.Tags.of(saasCostByTenantStack).add("environment", "dev");
 
 // const tags = [
 //   { key: "author", value: "guo" },
