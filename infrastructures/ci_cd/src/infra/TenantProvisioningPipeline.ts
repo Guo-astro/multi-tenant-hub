@@ -23,6 +23,7 @@ import {
   SystemProviderCfnOutputs,
   TenantSystemNameDict,
 } from "@/shared/Constants";
+import { createPipelineUpdateAction } from "./utils/pipelineHelper";
 export class TenantProvisioningPipeline extends cdk.Stack {
   constructor(
     scope: Construct,
@@ -147,6 +148,13 @@ export class TenantProvisioningPipeline extends cdk.Stack {
       output: sourceOutput,
       // trigger: codepipeline_actions.GitHubTrigger.NONE,
     });
+    const cdkBuildOutput = new codepipeline.Artifact("pipeline-cdk-build");
+    const pipeline_update_action = createPipelineUpdateAction(
+      this,
+      sourceOutput,
+      TenantSystemNameDict.tenantProviderInfraStackName,
+      cdkBuildOutput
+    );
 
     // Declare build output as artifacts
     const tenantStackDeployOutput = new codepipeline.Artifact();
@@ -325,6 +333,25 @@ export class TenantProvisioningPipeline extends cdk.Stack {
           {
             stageName: TenantProvisioningPipelineNameDict.Source,
             actions: [sourceAction],
+          },
+          {
+            stageName: "pipeline-build",
+            actions: [pipeline_update_action],
+          },
+          {
+            stageName: "pipeline-transform",
+            actions: [
+              new codepipeline_actions.CloudFormationCreateUpdateStackAction({
+                actionName: "Pipeline_Update",
+                stackName:
+                  TenantProvisioningPipelineNameDict.tenantProvisiongPipelineName,
+
+                templatePath: cdkBuildOutput.atPath(
+                  `infrastructures/ci_cd/cdk.out/tenantProvisiongPipeline.template.json`
+                ),
+                adminPermissions: true,
+              }),
+            ],
           },
           {
             stageName:

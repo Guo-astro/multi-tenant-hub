@@ -8,7 +8,6 @@ import {
   SystemProviderProvisioningPipelineNameDict,
   TenantProvisioningPipelineNameDict,
 } from "@/shared/Constants";
-import { Repository } from "aws-cdk-lib/aws-ecr";
 import { ECRStack } from "@/infra/service_provider_stacks/ECRStack";
 import { SaasCostByTenantStack } from "@/infra/cost_analysis_stacks/SaasCostByTenantStack";
 

@@ -5,7 +5,7 @@ import { Construct } from "constructs";
 export function createPipelineUpdateAction(
   scope: Construct,
   sourceOutput: cdk.aws_codepipeline.Artifact,
-  stackName: string,
+  stackNameToUpdate: string,
   cdkBuildOutput: cdk.aws_codepipeline.Artifact
 ) {
   const pipeline_update_action_buildspec = {
@@ -46,7 +46,7 @@ export function createPipelineUpdateAction(
           `echo $PATH`,
           `cd ./infrastructures/ci_cd`,
           `pnpm i`,
-          `pnpm run cdk -- synth ${stackName} --method=direct --require-approval never`,
+          `pnpm run cdk -- synth ${stackNameToUpdate} --method=direct --require-approval never`,
         ],
       },
     },

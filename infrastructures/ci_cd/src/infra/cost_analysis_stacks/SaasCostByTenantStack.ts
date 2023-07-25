@@ -7,7 +7,6 @@ import * as iam from "aws-cdk-lib/aws-iam";
 import * as events from "aws-cdk-lib/aws-events";
 import * as targets from "aws-cdk-lib/aws-events-targets";
 import { Construct } from "constructs";
-import { CfnCrawler } from "aws-cdk-lib/aws-glue";
 
 export class SaasCostByTenantStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -256,7 +255,7 @@ export class SaasCostByTenantStack extends cdk.Stack {
       this,
       "GetDynamoDBUsageAndCostByTenant",
       {
-        code: lambda.Code.fromAsset("TenantUsageAndCost"),
+        code: lambda.Code.fromAsset("src/services/tenant_cost"),
         handler:
           "tenant_usage_and_cost.calculate_daily_dynamodb_attribution_by_tenant",
         runtime: lambda.Runtime.PYTHON_3_9,
@@ -271,7 +270,7 @@ export class SaasCostByTenantStack extends cdk.Stack {
       this,
       "GetLambdaUsageAndCostByTenant",
       {
-        code: lambda.Code.fromAsset("TenantUsageAndCost"),
+        code: lambda.Code.fromAsset("src/services/tenant_cost"),
         handler:
           "tenant_usage_and_cost.calculate_daily_lambda_attribution_by_tenant",
         runtime: lambda.Runtime.PYTHON_3_9,
