@@ -250,7 +250,7 @@ export class DeploymentStack extends cdk.Stack {
       ),
       props: {
         description: "Function Arn to be used cross stack",
-        value: functionStack.bu,
+        value: functionStack.businessServicesAuthorizerFunctionArn,
         exportName: generateCfnExportName(
           SystemProviderCfnOutputs.businessServicesAuthorizerFunctionCfnOutput
         ),
