@@ -62,7 +62,7 @@ export class SaaSProviderAPILambdaPermissionStack extends NestedStack {
 
     // Must use low level api otherwise no effect. https://github.com/aws/aws-cdk/issues/7588
     for (const key in lambdaFunctionArns) {
-      if (key === lambdaFunctionArns.authorizerFunction) {
+      if (key === "authorizerFunction") {
         new CfnPermission(
           this,
           generateLogicalId(
