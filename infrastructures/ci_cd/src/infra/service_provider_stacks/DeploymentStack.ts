@@ -242,7 +242,12 @@ export class DeploymentStack extends cdk.Stack {
         ),
       },
     });
-    this.exportValue("businessServicesAuthorizerFunctionCfnOutput");
+    this.exportValue(functionStack.tenantAppsAuthorizerFunctionArn, {
+      name: "businessServicesAuthorizerFunctionCfnOutput",
+    });
+    this.exportValue(functionStack.tenantManagementAuthorizerFunctionArn, {
+      name: "sharedServicesAuthorizerFunctionCfnOutput",
+    });
     createCfnOutputIfNotExists(this, {
       id: generateLogicalId(
         SystemProviderCfnOutputs.tenantAppsAuthorizerFunctionCfnOutput,
