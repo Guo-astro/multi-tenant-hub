@@ -85,3 +85,21 @@ Bearer eyJraWQiOiJRWlhOS0NBcTZxbEhNY0ZWYjl1MG1XXC9FMVJDU0Fkb1g5KzdCSzI3Tm56MD0iL
   -H 'sec-fetch-site: cross-site' \
   -H 'user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36' \
   --compressed
+
+  curl 'https://r34ktvtpai.execute-api.ap-northeast-1.amazonaws.com/development/products' \
+  -H 'authority: r34ktvtpai.execute-api.ap-northeast-1.amazonaws.com' \
+  -H 'accept: application/json, text/plain, */*' \
+  -H 'accept-language: en,ja;q=0.9' \
+  -H 'authorization: 
+Bearer eyJraWQiOiJIRlFrMkV4U1gxTVwvZ1pJZ1ZZMGcwdTY2T04xMGFJcmtNeEFSWmd2RmJVQT0iLCJhbGciOiJSUzI1NiJ9.eyJzdWIiOiIxNzU0YWE2OC1kMDQxLTcwMzQtYWE0Ny0zZTNlNWUyN2JjNjQiLCJjb2duaXRvOmdyb3VwcyI6WyJkMmJkMTY2YjJiMDgxMWVlYWNjNGJkMmU1NjQzZThjNSJdLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwiaXNzIjoiaHR0cHM6XC9cL2NvZ25pdG8taWRwLmFwLW5vcnRoZWFzdC0xLmFtYXpvbmF3cy5jb21cL2FwLW5vcnRoZWFzdC0xX2RWSFRpSFBldyIsImNvZ25pdG86dXNlcm5hbWUiOiJ0ZW5hbnQtYWRtaW4tZDJiZDE2NmIyYjA4MTFlZWFjYzRiZDJlNTY0M2U4YzUiLCJvcmlnaW5fanRpIjoiMGYwOTRkZjktZjY4YS00NmQ4LWJiYTctOTRhNmEwY2E2NTk1IiwiY3VzdG9tOnRlbmFudElkIjoiZDJiZDE2NmIyYjA4MTFlZWFjYzRiZDJlNTY0M2U4YzUiLCJhdWQiOiIydWlzaDczb24wcmEzbHB2OGFsZmg5dWdrbCIsImV2ZW50X2lkIjoiMjMwMTUwYzAtOGFhMy00MWZiLWI3MGItYTUxZDcxNjgyMDgyIiwiY3VzdG9tOnVzZXJSb2xlIjoiVGVuYW50QWRtaW4iLCJ0b2tlbl91c2UiOiJpZCIsImF1dGhfdGltZSI6MTY5MDMxNTk3OSwiZXhwIjoxNjkwMzUzOTgyLCJpYXQiOjE2OTAzNTAzODIsImp0aSI6IjEzNzQ0OTc0LWE2NTctNGRlYi04YzNiLWE0ODkxMGU5ZTcyZCIsImVtYWlsIjoiZ3VvLnlhbnNvbmcubmd5QGdtYWlsLmNvbSJ9.r_i32yYnjGwL8vKCNSM6FG2Mt0XKgX9mPlXKah-dqEJf3K_SoO0dWkoqmYKJCW9vG4w08Yy6zxJraiC0vKmigDKMLIFRadUlzfxAqOHvM-qiJAxUJ2X9QJPf2JxBWqHaLWnkXngn3vCExnLAjUXxaUGCD9EGF3z4Q8VXMzDHKEo7fskpPkMEqYbnqrj-qlGOann3-pqTZ0V6D8y6QgiL4QHcgk8oKPFaQUGFJfpu9n3rISLRvB0iXi_bs8Fea8ana-36Cumiv71nh3ogvCRxYtK_-wn132YEBp1uocWzHJasLNeoCPgqjwOIAGWte5BW5-k8Mjqjk6twL8Chf6Y8TQ
+  ' \
+  -H 'origin: https://d3dfzhe57fw4yo.cloudfront.net' \
+  -H 'referer: https://d3dfzhe57fw4yo.cloudfront.net/' \
+  -H 'sec-ch-ua: "Not.A/Brand";v="8", "Chromium";v="114", "Google Chrome";v="114"' \
+  -H 'sec-ch-ua-mobile: ?0' \
+  -H 'sec-ch-ua-platform: "macOS"' \
+  -H 'sec-fetch-dest: empty' \
+  -H 'sec-fetch-mode: cors' \
+  -H 'sec-fetch-site: cross-site' \
+  -H 'user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36' \
+  --compressed

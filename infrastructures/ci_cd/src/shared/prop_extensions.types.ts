@@ -133,7 +133,7 @@ export type SaaSProviderAPIStackProps = NestedStackProps & {
   createUserFunctionArn: string;
   disableUsersByTenantFunctionArn: string;
   enableUsersByTenantFunctionArn: string;
-  sharedServicesAuthorizerFunctionArn: string;
+  tenantManagementAuthorizerFunctionArn: string;
   apiKeyOperationUsersParameter: string;
   apiKeyPlatinumTierParameter: string;
   apiKeyPremiumTierParameter: string;

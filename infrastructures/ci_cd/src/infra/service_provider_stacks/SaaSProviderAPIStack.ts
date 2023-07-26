@@ -50,7 +50,7 @@ export class SystemProviderAPIStack extends cdk.NestedStack {
       createUserFunctionArn,
       disableUsersByTenantFunctionArn,
       enableUsersByTenantFunctionArn,
-      sharedServicesAuthorizerFunctionArn,
+      tenantManagementAuthorizerFunctionArn,
       apiKeyOperationUsersParameter,
       apiKeyPlatinumTierParameter,
       apiKeyPremiumTierParameter,
@@ -526,7 +526,7 @@ export class SystemProviderAPIStack extends cdk.NestedStack {
         SystemProviderInfraStackNameDict.TokenAuthorizer,
         tenantId
       ),
-      sharedServicesAuthorizerFunctionArn
+      tenantManagementAuthorizerFunctionArn
     );
 
     const authorizer = new apigateway.TokenAuthorizer(

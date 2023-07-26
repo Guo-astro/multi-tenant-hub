@@ -34,8 +34,8 @@ export class SaaSProviderLambdaStack extends NestedStack {
   public readonly enableUsersByTenantFunctionArn: string;
   public readonly updateSettingsTableFunctionArn: string;
   public readonly updateTenantStackMapTableFunctionArn: string;
-  public readonly sharedServicesAuthorizerFunctionArn: string;
-  public readonly businessServicesAuthorizerFunctionArn: string;
+  public readonly tenantManagementAuthorizerFunctionArn: string;
+  public readonly tenantAppsAuthorizerFunctionArn: string;
   constructor(scope: Construct, id: string, props: LambdaStackProps) {
     super(scope, id, props);
 
@@ -495,11 +495,14 @@ export class SaaSProviderLambdaStack extends NestedStack {
       )
     );
 
-    const sharedServicesAuthorizerFunction = createContaineredLambdaFunction(
+    /**
+     * tenantManagementAuthorizerFunction is the same as tenantAppsAuthorizerFunction
+     */
+    const tenantManagementAuthorizerFunction = createContaineredLambdaFunction(
       this,
       {
         functionName:
-          SystemProviderInfraStackNameDict.sharedServicesAuthorizerFunction,
+          SystemProviderInfraStackNameDict.tenantManagementAuthorizerFunction,
         lambdaEcrRepository: lambdaEcrRepository,
         imageTag: lambdaImageTag,
         handlerName: "shared_service_authorizer.lambda_handler",
@@ -526,40 +529,37 @@ export class SaaSProviderLambdaStack extends NestedStack {
         tenantId,
       }
     );
-    sharedServicesAuthorizerFunction.node.addDependency(authorizerAccessRole);
+    tenantManagementAuthorizerFunction.node.addDependency(authorizerAccessRole);
 
-    const businessServicesAuthorizerFunction = createContaineredLambdaFunction(
-      this,
-      {
-        functionName:
-          SystemProviderInfraStackNameDict.businessServicesAuthorizerFunction,
-        lambdaEcrRepository: lambdaEcrRepository,
-        imageTag: lambdaImageTag,
-        handlerName: "tenant_authorizer.lambda_handler",
-        role: authorizerExecutionRole,
-        tracing: lambda.Tracing.ACTIVE,
+    const tenantAppsAuthorizerFunction = createContaineredLambdaFunction(this, {
+      functionName:
+        SystemProviderInfraStackNameDict.tenantAppsAuthorizerFunction,
+      lambdaEcrRepository: lambdaEcrRepository,
+      imageTag: lambdaImageTag,
+      handlerName: "tenant_authorizer.lambda_handler",
+      role: authorizerExecutionRole,
+      tracing: lambda.Tracing.ACTIVE,
 
-        environment: {
-          OPERATION_USERS_USER_POOL: cognitoOperationUsersUserPoolId,
-          OPERATION_USERS_APP_CLIENT: cognitoOperationUsersUserPoolClientId,
-          OPERATION_USERS_API_KEY: apiKeyOperationUsersParameter,
-          AUTHORIZER_ACCESS_ROLE_NAME: authorizerAccessRole.roleName,
-        },
-        aliasName: "live",
-        deploymentConfig:
-          codedeploy.LambdaDeploymentConfig.LINEAR_10PERCENT_EVERY_1MINUTE,
-        alarmDescription: "Lambda function canary errors",
-        comparisonOperator:
-          cloudwatch.ComparisonOperator.GREATER_THAN_THRESHOLD,
-        evaluationPeriods: 2,
-        threshold: 0,
-        statistic: cloudwatch.Statistic.SUM,
-        period: cdk.Duration.seconds(60),
-        tenantId,
-      }
-    );
+      environment: {
+        TENANT_DETAILS_TABLE_NAME: tenantDetailsTableName,
+        OPERATION_USERS_USER_POOL: cognitoOperationUsersUserPoolId,
+        OPERATION_USERS_APP_CLIENT: cognitoOperationUsersUserPoolClientId,
+        OPERATION_USERS_API_KEY: apiKeyOperationUsersParameter,
+        AUTHORIZER_ACCESS_ROLE_NAME: authorizerAccessRole.roleName,
+      },
+      aliasName: "live",
+      deploymentConfig:
+        codedeploy.LambdaDeploymentConfig.LINEAR_10PERCENT_EVERY_1MINUTE,
+      alarmDescription: "Lambda function canary errors",
+      comparisonOperator: cloudwatch.ComparisonOperator.GREATER_THAN_THRESHOLD,
+      evaluationPeriods: 2,
+      threshold: 0,
+      statistic: cloudwatch.Statistic.SUM,
+      period: cdk.Duration.seconds(60),
+      tenantId,
+    });
 
-    businessServicesAuthorizerFunction.node.addDependency(authorizerAccessRole);
+    tenantAppsAuthorizerFunction.node.addDependency(authorizerAccessRole);
     const createTenantAdminUserFunction = createContaineredLambdaFunction(
       this,
       {
@@ -1127,10 +1127,10 @@ export class SaaSProviderLambdaStack extends NestedStack {
       disableUsersByTenantFunction.functionArn;
     this.enableUsersByTenantFunctionArn =
       enableUsersByTenantFunction.functionArn;
-    this.sharedServicesAuthorizerFunctionArn =
-      sharedServicesAuthorizerFunction.functionArn;
-    this.businessServicesAuthorizerFunctionArn =
-      businessServicesAuthorizerFunction.functionArn;
+    this.tenantManagementAuthorizerFunctionArn =
+      tenantManagementAuthorizerFunction.functionArn;
+    this.tenantAppsAuthorizerFunctionArn =
+      tenantAppsAuthorizerFunction.functionArn;
     this.updateSettingsTableFunctionArn =
       updateSettingsTableFunction.functionArn;
     this.updateTenantStackMapTableFunctionArn =

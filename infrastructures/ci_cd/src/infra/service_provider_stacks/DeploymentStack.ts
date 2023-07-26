@@ -231,28 +231,28 @@ export class DeploymentStack extends cdk.Stack {
     );
     createCfnOutputIfNotExists(this, {
       id: generateLogicalId(
-        SystemProviderCfnOutputs.sharedServicesAuthorizerFunctionCfnOutput,
+        SystemProviderCfnOutputs.tenantManagementAuthorizerFunctionCfnOutput,
         tenantId
       ),
       props: {
         description: "Function Arn to be used cross stack",
-        value: functionStack.sharedServicesAuthorizerFunctionArn,
+        value: functionStack.tenantManagementAuthorizerFunctionArn,
         exportName: generateCfnExportName(
-          SystemProviderCfnOutputs.sharedServicesAuthorizerFunctionCfnOutput
+          SystemProviderCfnOutputs.tenantManagementAuthorizerFunctionCfnOutput
         ),
       },
     });
 
     createCfnOutputIfNotExists(this, {
       id: generateLogicalId(
-        SystemProviderCfnOutputs.businessServicesAuthorizerFunctionCfnOutput,
+        SystemProviderCfnOutputs.tenantAppsAuthorizerFunctionCfnOutput,
         tenantId
       ),
       props: {
         description: "Function Arn to be used cross stack",
-        value: functionStack.businessServicesAuthorizerFunctionArn,
+        value: functionStack.tenantAppsAuthorizerFunctionArn,
         exportName: generateCfnExportName(
-          SystemProviderCfnOutputs.businessServicesAuthorizerFunctionCfnOutput
+          SystemProviderCfnOutputs.tenantAppsAuthorizerFunctionCfnOutput
         ),
       },
     });
@@ -290,8 +290,8 @@ export class DeploymentStack extends cdk.Stack {
           functionStack.disableUsersByTenantFunctionArn,
         enableUsersByTenantFunctionArn:
           functionStack.enableUsersByTenantFunctionArn,
-        sharedServicesAuthorizerFunctionArn:
-          functionStack.sharedServicesAuthorizerFunctionArn,
+        tenantManagementAuthorizerFunctionArn:
+          functionStack.tenantManagementAuthorizerFunctionArn,
         apiKeyOperationUsersParameter,
         apiKeyPlatinumTierParameter,
         apiKeyPremiumTierParameter,
@@ -392,7 +392,7 @@ export class DeploymentStack extends cdk.Stack {
           enableUsersByTenantFunctionArn:
             functionStack.enableUsersByTenantFunctionArn,
           authorizerFunctionArn:
-            functionStack.sharedServicesAuthorizerFunctionArn,
+            functionStack.tenantManagementAuthorizerFunctionArn,
           apiId: apiStack.restApiId,
           tenantId,
         }

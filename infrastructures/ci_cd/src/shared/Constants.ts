@@ -25,10 +25,10 @@ export const SystemProviderCfnOutputs = {
   usagePlanPremiumTierId: "usagePlanPremiumTierId",
   usagePlanPlatinumTierId: "usagePlanPlatinumTierId",
   usagePlanSystemAdminId: "usagePlanSystemAdminId",
-  sharedServicesAuthorizerFunctionCfnOutput:
-    "sharedServicesAuthorizerFunctionCfnOutput",
-  businessServicesAuthorizerFunctionCfnOutput:
-    "businessServicesAuthorizerFunctionCfnOutput",
+  tenantManagementAuthorizerFunctionCfnOutput:
+    "tenantManagementAuthorizerFunctionCfnOutput",
+  tenantAppsAuthorizerFunctionCfnOutput:
+    "tenantAppsAuthorizerFunctionCfnOutput",
 };
 
 export const SystemProviderInfraStackNameDict = {
@@ -116,8 +116,8 @@ export const SystemProviderInfraStackNameDict = {
   UpdateTenantStackMapTableLambdaExecutionPolicy:
     "UpdateTenantStackMapTableLambdaExecutionPolicy",
 
-  sharedServicesAuthorizerFunction: "sharedServicesAuthorizerFunction",
-  businessServicesAuthorizerFunction: "businessServicesAuthorizerFunction",
+  tenantManagementAuthorizerFunction: "tenantManagementAuthorizerFunction",
+  tenantAppsAuthorizerFunction: "tenantAppsAuthorizerFunction",
 
   createTenantAdminUserFunction: "createTenantAdminUserFunction",
   createUserFunction: "createUserFunction",

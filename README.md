@@ -43,3 +43,14 @@ npx cdk bootstrap \
 
 ## Migration
 1. [Cognito](https://www.thelambdablog.com/implementing-a-lazy-user-migration-lambda-for-an-aws-cognito-user-pool/)
+
+
+# Q&A
+
+Reason: Token authorizer is not working and therafore cannot add context to the lambda request.
+[ERROR] KeyError: 'authorizer'
+Traceback (most recent call last):
+  File "/var/task/aws_lambda_powertools/tracing/tracer.py", line 313, in decorate
+    response = lambda_handler(event, context, **kwargs)
+  File "/var/task/order_service.py", line 71, in get_orders
+    tenantId = event['requestContext']['authorizer']['tenantId']
