@@ -205,6 +205,7 @@ export class SystemProviderAPIStack extends cdk.NestedStack {
             },
           },
         },
+        //TODO: need to be e2e tested
         policy: new iam.PolicyDocument({
           statements: [
             new iam.PolicyStatement({

@@ -195,7 +195,11 @@ export class TenantApiStack extends cdk.NestedStack {
           PUT: updateOrderFunctionIntegration,
           DELETE: deleteOrderFunctionIntegration,
         },
-        security: {},
+        security: {
+          GET: ["apiKey", "Authorizer"],
+          DELETE: ["apiKey", "Authorizer"],
+          PUT: ["apiKey", "Authorizer"],
+        },
       },
       {
         path: "orders",
@@ -203,7 +207,9 @@ export class TenantApiStack extends cdk.NestedStack {
         integrations: {
           GET: getOrdersFunctionIntegration,
         },
-        security: {},
+        security: {
+          GET: ["apiKey", "Authorizer"],
+        },
       },
       {
         path: "order",
@@ -211,7 +217,9 @@ export class TenantApiStack extends cdk.NestedStack {
         integrations: {
           POST: createOrderFunctionIntegration,
         },
-        security: {},
+        security: {
+          POST: ["apiKey", "Authorizer"],
+        },
       },
 
       {
@@ -222,7 +230,11 @@ export class TenantApiStack extends cdk.NestedStack {
           PUT: updateProductFunctionIntegration,
           DELETE: deleteProductFunctionIntegration,
         },
-        security: {},
+        security: {
+          GET: ["apiKey", "Authorizer"],
+          DELETE: ["apiKey", "Authorizer"],
+          PUT: ["apiKey", "Authorizer"],
+        },
       },
       {
         path: "products",
@@ -230,7 +242,9 @@ export class TenantApiStack extends cdk.NestedStack {
         integrations: {
           GET: getProductsFunctionIntegration,
         },
-        security: {},
+        security: {
+          GET: ["apiKey", "Authorizer"],
+        },
       },
       {
         path: "product",
@@ -238,7 +252,9 @@ export class TenantApiStack extends cdk.NestedStack {
         integrations: {
           POST: createProductFunctionIntegration,
         },
-        security: {},
+        security: {
+          POST: ["apiKey", "Authorizer"],
+        },
       },
     ];
     constructApi(resourceList, apigw, securityTypeOptions);
