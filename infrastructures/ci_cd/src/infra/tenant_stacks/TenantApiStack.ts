@@ -182,7 +182,7 @@ export class TenantApiStack extends cdk.NestedStack {
     );
     const securityTypeOptions: SecurityTypeOptions = {
       apiKey: { apiKeyRequired: true },
-      sigv4Reference: { authorizationType: apigateway.AuthorizationType.IAM },
+      iamAuth: { authorizationType: apigateway.AuthorizationType.IAM },
       Authorizer: { authorizer: authorizer },
     };
 
@@ -196,9 +196,9 @@ export class TenantApiStack extends cdk.NestedStack {
           DELETE: deleteOrderFunctionIntegration,
         },
         security: {
-          GET: ["apiKey", "Authorizer"],
-          DELETE: ["apiKey", "Authorizer"],
-          PUT: ["apiKey", "Authorizer"],
+          GET: ["Authorizer"],
+          DELETE: ["Authorizer"],
+          PUT: ["Authorizer"],
         },
       },
       {
@@ -208,7 +208,7 @@ export class TenantApiStack extends cdk.NestedStack {
           GET: getOrdersFunctionIntegration,
         },
         security: {
-          GET: ["apiKey", "Authorizer"],
+          GET: ["Authorizer"],
         },
       },
       {
@@ -218,7 +218,7 @@ export class TenantApiStack extends cdk.NestedStack {
           POST: createOrderFunctionIntegration,
         },
         security: {
-          POST: ["apiKey", "Authorizer"],
+          POST: ["Authorizer"],
         },
       },
 
@@ -231,9 +231,9 @@ export class TenantApiStack extends cdk.NestedStack {
           DELETE: deleteProductFunctionIntegration,
         },
         security: {
-          GET: ["apiKey", "Authorizer"],
-          DELETE: ["apiKey", "Authorizer"],
-          PUT: ["apiKey", "Authorizer"],
+          GET: ["Authorizer"],
+          DELETE: ["Authorizer"],
+          PUT: ["Authorizer"],
         },
       },
       {
@@ -243,7 +243,7 @@ export class TenantApiStack extends cdk.NestedStack {
           GET: getProductsFunctionIntegration,
         },
         security: {
-          GET: ["apiKey", "Authorizer"],
+          GET: ["Authorizer"],
         },
       },
       {
@@ -253,7 +253,7 @@ export class TenantApiStack extends cdk.NestedStack {
           POST: createProductFunctionIntegration,
         },
         security: {
-          POST: ["apiKey", "Authorizer"],
+          POST: ["Authorizer"],
         },
       },
     ];

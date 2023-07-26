@@ -199,13 +199,15 @@ export class SystemProviderAPIStack extends cdk.NestedStack {
               dataTraceEnabled: false,
               loggingLevel: apigateway.MethodLoggingLevel.INFO,
               metricsEnabled: true,
-              //TODO: accepts 100 requests per minute, allowing burst up to 200 requests per minute
+              //TODO: doc it. accepts 100 requests per minute, allowing burst up to 200 requests per minute
               throttlingRateLimit: 100,
               throttlingBurstLimit: 200,
             },
           },
         },
         //TODO: need to be e2e tested
+        //TODO:Check the methods corresponding to the iam Auth
+
         policy: new iam.PolicyDocument({
           statements: [
             new iam.PolicyStatement({
@@ -541,7 +543,7 @@ export class SystemProviderAPIStack extends cdk.NestedStack {
 
     const securityTypeOptions: SecurityTypeOptions = {
       apiKey: { apiKeyRequired: true },
-      sigv4Reference: { authorizationType: apigateway.AuthorizationType.IAM },
+      iamAuth: { authorizationType: apigateway.AuthorizationType.IAM },
       Authorizer: { authorizer: authorizer },
     };
 
@@ -561,7 +563,7 @@ export class SystemProviderAPIStack extends cdk.NestedStack {
           POST: provisionTenantIntegration,
         },
         security: {
-          POST: ["sigv4Reference"],
+          POST: ["iamAuth"],
         },
       },
       {
@@ -571,7 +573,7 @@ export class SystemProviderAPIStack extends cdk.NestedStack {
           PUT: deProvisionTenantIntegration,
         },
         security: {
-          PUT: ["sigv4Reference"],
+          PUT: ["iamAuth"],
         },
       },
       {
@@ -601,7 +603,7 @@ export class SystemProviderAPIStack extends cdk.NestedStack {
           POST: createTenantIntegration,
         },
         security: {
-          POST: ["sigv4Reference"],
+          POST: ["iamAuth"],
         },
       },
       {
@@ -647,7 +649,7 @@ export class SystemProviderAPIStack extends cdk.NestedStack {
           POST: createTenantAdminUserIntegration,
         },
         security: {
-          POST: ["sigv4Reference"],
+          POST: ["iamAuth"],
         },
       },
       {
@@ -677,7 +679,7 @@ export class SystemProviderAPIStack extends cdk.NestedStack {
           PUT: disableUsersByTenantIntegration,
         },
         security: {
-          PUT: ["sigv4Reference"],
+          PUT: ["iamAuth"],
         },
       },
       {
@@ -687,7 +689,7 @@ export class SystemProviderAPIStack extends cdk.NestedStack {
           PUT: enableUsersByTenantIntegration,
         },
         security: {
-          PUT: ["sigv4Reference"],
+          PUT: ["iamAuth"],
         },
       },
     ];

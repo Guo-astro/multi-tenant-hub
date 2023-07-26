@@ -248,7 +248,7 @@ export type TenantApiStackProps = NestedStackProps & {
 };
 
 type HttpMethod = "GET" | "POST" | "PUT" | "DELETE" | "OPTIONS";
-type SecurityType = "apiKey" | "sigv4Reference" | "Authorizer";
+type SecurityType = "apiKey" | "iamAuth" | "Authorizer";
 
 export type SecurityTypeOptions = {
   [key in SecurityType]?: apigateway.MethodOptions | never;
