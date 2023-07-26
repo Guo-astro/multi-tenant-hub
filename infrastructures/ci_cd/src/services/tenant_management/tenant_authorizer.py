@@ -20,6 +20,8 @@ table_tenant_details = dynamodb.Table('ServerlessSaaS-TenantDetails')
 user_pool_operation_user = os.environ['OPERATION_USERS_USER_POOL']
 app_client_operation_user = os.environ['OPERATION_USERS_APP_CLIENT']
 api_key_operation_user = os.environ['OPERATION_USERS_API_KEY']
+authorizer_access_role_name = os.environ['AUTHORIZER_ACCESS_ROLE_NAME']
+
 
 def lambda_handler(event, context):
     
@@ -102,8 +104,8 @@ def lambda_handler(event, context):
     iam_policy = auth_manager.getPolicyForUser(user_role, utils.Service_Identifier.BUSINESS_SERVICES.value, tenant_id, region, aws_account_id)
     logger.info(iam_policy)
     
-    role_arn = "arn:aws:iam::{}:role/authorizer-access-role".format(aws_account_id)
-    
+    role_arn = "arn:aws:iam::{}:role/{}".format(aws_account_id, authorizer_access_role_name)
+
     assumed_role = sts_client.assume_role(
         RoleArn=role_arn,
         RoleSessionName="tenant-aware-session",

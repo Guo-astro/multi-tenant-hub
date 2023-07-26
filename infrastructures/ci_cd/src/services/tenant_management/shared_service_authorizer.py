@@ -22,7 +22,7 @@ table_tenant_details = dynamodb.Table(tenant_details_table_name)
 user_pool_operation_user = os.environ['OPERATION_USERS_USER_POOL']
 app_client_operation_user = os.environ['OPERATION_USERS_APP_CLIENT']
 api_key_operation_user = os.environ['OPERATION_USERS_API_KEY']
-authorizer_access_role_name = os.environ['AUTHORIZER_EXECUTION_ROLE_NAME']
+authorizer_access_role_name = os.environ['AUTHORIZER_ACCESS_ROLE_NAME']
 def lambda_handler(event, context):
     
     #get JWT token after Bearer from authorization

@@ -511,7 +511,7 @@ export class SaaSProviderLambdaStack extends NestedStack {
           OPERATION_USERS_USER_POOL: cognitoOperationUsersUserPoolId,
           OPERATION_USERS_APP_CLIENT: cognitoOperationUsersUserPoolClientId,
           OPERATION_USERS_API_KEY: apiKeyOperationUsersParameter,
-          AUTHORIZER_EXECUTION_ROLE_NAME: authorizerAccessRole.roleName,
+          AUTHORIZER_ACCESS_ROLE_NAME: authorizerAccessRole.roleName,
         },
         aliasName: "live",
         deploymentConfig:
@@ -543,6 +543,7 @@ export class SaaSProviderLambdaStack extends NestedStack {
           OPERATION_USERS_USER_POOL: cognitoOperationUsersUserPoolId,
           OPERATION_USERS_APP_CLIENT: cognitoOperationUsersUserPoolClientId,
           OPERATION_USERS_API_KEY: apiKeyOperationUsersParameter,
+          AUTHORIZER_ACCESS_ROLE_NAME: authorizerAccessRole.roleName,
         },
         aliasName: "live",
         deploymentConfig:
