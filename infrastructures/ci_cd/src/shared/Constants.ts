@@ -152,6 +152,9 @@ export const SystemProviderInfraStackNameDict = {
 };
 
 export const TenantSystemNameDict = {
+  throttlingLimitMetricFilterMetricNS: "Serverless-SaaS-Reference-Architecture",
+  throttlingLimitMetricFilter: "ThrottlingLimitMetricFilter",
+  ThrottlingLimitExceeded: "ThrottlingLimitExceeded",
   apigwPermission: "apigwPermission",
   updateUsagePlanFunction: "updateUsagePlanFunction",
   associateUsagePlanWithTenantApiProvider:

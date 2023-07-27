@@ -18,6 +18,11 @@ import {
 import { generateLogicalId, generatePhysicalName } from "../utils/Utils";
 import { constructApi } from "../utils/apigwHelper";
 import { TenantSystemNameDict } from "@/shared/Constants";
+import {
+  Alarm,
+  ComparisonOperator,
+  Statistic,
+} from "aws-cdk-lib/aws-cloudwatch";
 export class TenantApiStack extends cdk.NestedStack {
   public readonly restApiId: string;
   public readonly restApiIdStageName: string;
@@ -264,7 +269,31 @@ export class TenantApiStack extends cdk.NestedStack {
       authorizationType: apigateway.AuthorizationType.CUSTOM,
       authorizer,
     });
+    // Metric Filter
+    const metricFilter = new logs.MetricFilter(
+      this,
+      TenantSystemNameDict.throttlingLimitMetricFilter,
+      {
+        logGroup: apiGatewayAccessLogs,
+        filterPattern: logs.FilterPattern.literal("$.status = '429'"),
+        metricName: TenantSystemNameDict.ThrottlingLimitExceeded,
+        metricNamespace:
+          TenantSystemNameDict.throttlingLimitMetricFilterMetricNS,
+        metricValue: "1",
+      }
+    );
 
+    // CloudWatch Alarm
+    new Alarm(this, TenantSystemNameDict.ThrottlingLimitExceeded, {
+      alarmDescription: "Throttling limit exceeded errors",
+      comparisonOperator: ComparisonOperator.GREATER_THAN_THRESHOLD,
+      evaluationPeriods: 1,
+      metric: metricFilter.metric({
+        period: cdk.Duration.minutes(1),
+        statistic: Statistic.SAMPLE_COUNT,
+      }),
+      threshold: 0,
+    });
     this.restApiId = apigw.restApiId;
     this.restApiIdStageName = stageName;
   }
