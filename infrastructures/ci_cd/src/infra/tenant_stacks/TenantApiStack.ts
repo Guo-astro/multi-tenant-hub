@@ -275,7 +275,7 @@ export class TenantApiStack extends cdk.NestedStack {
       TenantSystemNameDict.throttlingLimitMetricFilter,
       {
         logGroup: apiGatewayAccessLogs,
-        filterPattern: logs.FilterPattern.numberValue("$.errorCode", "=", 429),
+        filterPattern: logs.FilterPattern.stringValue("$.status", "=", "429"),
         metricName: TenantSystemNameDict.ThrottlingLimitExceeded,
         metricNamespace:
           TenantSystemNameDict.throttlingLimitMetricFilterMetricNS,
