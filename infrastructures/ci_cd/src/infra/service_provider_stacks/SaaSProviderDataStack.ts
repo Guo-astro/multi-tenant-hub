@@ -134,7 +134,8 @@ export class SaaSProviderDataStack extends NestedStack {
       sortKey,
       readCapacity: 5,
       writeCapacity: 5,
-      removalPolicy: RemovalPolicy.DESTROY,
+      removalPolicy: RemovalPolicy.DESTROY, //TODO: Choose the appropriate removal policy for different environments
+      pointInTimeRecovery: true, //TODO: Choose the appropriate removal policy for different environments
     });
 
     if (gsiConfig) {

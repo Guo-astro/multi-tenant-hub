@@ -68,7 +68,8 @@ export class TenantDataStack extends NestedStack {
         sortKey,
         readCapacity: 5,
         writeCapacity: 5,
-        removalPolicy: cdk.RemovalPolicy.DESTROY, //TODO: Choose the appropriate removal policy
+        pointInTimeRecovery: true, //TODO: Choose the appropriate removal policy for different environments
+        removalPolicy: cdk.RemovalPolicy.DESTROY, //TODO: Choose the appropriate removal policy for different environments
       }
     );
 

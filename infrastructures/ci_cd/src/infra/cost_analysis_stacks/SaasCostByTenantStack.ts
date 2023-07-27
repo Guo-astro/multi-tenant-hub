@@ -181,6 +181,8 @@ export class SaasCostByTenantStack extends cdk.Stack {
       {
         tableName: "TenantCostAndUsageAttribution",
         billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+        pointInTimeRecovery: true, //TODO: Choose the appropriate removal policy for different environments
+        removalPolicy: cdk.RemovalPolicy.DESTROY, //TODO: Choose the appropriate removal policy for different environments
         partitionKey: { name: "Date", type: dynamodb.AttributeType.NUMBER },
         sortKey: {
           name: "TenantId#ServiceName",
