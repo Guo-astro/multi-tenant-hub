@@ -16,7 +16,9 @@ import random
 import threading
 from boto3.dynamodb.conditions import Key
 
-is_pooled_deploy = os.environ['IS_POOLED_DEPLOY']
+tenantId = os.environ['TENANT_ID']
+# TODO: just for demostrration for what we can do with each type of tenant
+is_pooled_deploy = tenantId == "pooled"
 table_name = os.environ['ORDER_TABLE_NAME']
 dynamodb = None
 

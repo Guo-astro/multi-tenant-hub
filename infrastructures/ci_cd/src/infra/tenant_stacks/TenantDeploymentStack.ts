@@ -122,7 +122,6 @@ export class TenantDeploymentStack extends cdk.Stack {
 
     const tenantDetailsTableArn = tenantDetailsTableArnCfnParam.valueAsString;
     const stageName = props.tags.environment;
-    const isPooledDeploy = tenantId === "pooled" ? "True" : "False";
     const tenantCatagory = tenantId;
     const tenantDataStack = new TenantDataStack(
       this,
@@ -147,7 +146,6 @@ export class TenantDeploymentStack extends cdk.Stack {
         lambdaCanaryDeploymentPreference: true,
         orderTable: tenantDataStack.orderTable,
         productTable: tenantDataStack.productTable,
-        isPooledDeploy: isPooledDeploy,
         serverlessSaaSSettingsTableArn: systemSettingsTableArn,
         tenantDetailsTableArn: tenantDetailsTableArn,
       }
@@ -231,7 +229,6 @@ export class TenantDeploymentStack extends cdk.Stack {
         tenantApiGatewayId: tenantApiStack.restApiId,
         systemProviderSettingsTableName: systemProviderSettingsTableName,
         tenantDetailsTableName: tenantDetailsTableName,
-        isPooledDeploy: isPooledDeploy,
         stageName: stageName,
         usagePlanBasicTierId: usagePlanBasicTierId,
         usagePlanStandardTierId: usagePlanStandardTierId,

@@ -223,7 +223,6 @@ export type TenantFunctionStackProps = StackProps & {
   orderTable: Table;
   tenantId: string;
   lambdaCanaryDeploymentPreference: boolean;
-  isPooledDeploy: string;
   lambdaReserveConcurrency: number;
   serverlessSaaSSettingsTableArn: string;
   tenantDetailsTableArn: string;
@@ -289,7 +288,6 @@ export type TenantCustomResourceStackProps = NestedStackProps & {
   tenantApiGatewayId: string;
   systemProviderSettingsTableName: string;
   tenantDetailsTableName: string;
-  isPooledDeploy: string;
   stageName: string;
   usagePlanBasicTierId: string;
   usagePlanStandardTierId: string;

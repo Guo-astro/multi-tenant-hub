@@ -28,7 +28,9 @@ def do_action(event, _):
     logger.info("adding api gateway stage to usage plan")
     api_id = event['ResourceProperties']['ApiGatewayId']
     settings_table_name = event['ResourceProperties']['SettingsTableName']
-    is_pooled_deploy = event['ResourceProperties']['IsPooledDeploy']
+    tenantId = event['ResourceProperties']['TenantId']
+    #TODO: just for demostrration for what we can do with each type of tenant
+    is_pooled_deploy = tenantId == "pooled"
     stage = event['ResourceProperties']['Stage']
     usage_plan_id_basic = event['ResourceProperties']['UsagePlanBasicTierId']
     usage_plan_id_standard = event['ResourceProperties']['UsagePlanStandardTierId']

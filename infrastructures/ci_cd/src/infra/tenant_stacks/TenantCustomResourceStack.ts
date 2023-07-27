@@ -49,7 +49,7 @@ export class TenantCustomResourceStack extends cdk.NestedStack {
           ForceRefreshTrigger: new Date().toISOString(),
           ApiGatewayId: props.tenantApiGatewayId,
           SettingsTableName: props.systemProviderSettingsTableName,
-          IsPooledDeploy: props.isPooledDeploy,
+          TenantId: props.tenantId,
           Stage: props.stageName,
           UsagePlanBasicTierId: props.usagePlanBasicTierId,
           UsagePlanStandardTierId: props.usagePlanStandardTierId,
