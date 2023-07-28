@@ -12,12 +12,10 @@
     "eslint-plugin-eslint-comments": "^3.2.0",
     "eslint-plugin-import": "^2.27.5",
     "eslint-plugin-react": "7.28.0",
-    "eslint-plugin-unicorn": "^47.0.0"
+    "eslint-plugin-unicorn": "^47.0.0",
+    "@vercel/style-guide": "^4.0.2"
   },
   "publishConfig": {
     "access": "public"
-  },
-  "devDependencies": {
-    "@vercel/style-guide": "^4.0.2"
   }
 }

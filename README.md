@@ -43,8 +43,8 @@ npx cdk bootstrap \
 
 ## Migration
 1. [Cognito](https://www.thelambdablog.com/implementing-a-lazy-user-migration-lambda-for-an-aws-cognito-user-pool/)
-
-
+2. [Dynamodb](https://www.eliasbrange.dev/posts/migrate-dynamodb-with-zero-downtime/)
+3. [CfnWebhook](https://blog.cuckoo.org/aws-pipelines-with-github-release-trigger-in-cdk)
 # Q&A
 
 Reason: Token authorizer is not working and therafore cannot add context to the lambda request.

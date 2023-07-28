@@ -10,6 +10,7 @@ import {
 } from "@/shared/Constants";
 import { ECRStack } from "@/infra/service_provider_stacks/ECRStack";
 import { SaasCostByTenantStack } from "@/infra/cost_analysis_stacks/SaasCostByTenantStack";
+import { CostAnalyticsPipeline } from "@/infra/CostAnalyticsPipeline";
 
 const app = new cdk.App();
 const tenantProvisoningPipelineName =
@@ -53,6 +54,16 @@ const tenantProvisioningPipeline = new TenantProvisioningPipeline(
       environment: "development",
     },
     tenantProvisoningPipelineName,
+  }
+);
+
+const costAnalyticsPipeline = new CostAnalyticsPipeline(
+  app,
+  "costAnalyticsPipeline",
+  {
+    tags: {
+      environment: "development",
+    },
   }
 );
 //TODO: doc it

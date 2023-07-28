@@ -1,15 +1,14 @@
 module.exports = {
   extends: [
-    "@vercel/style-guide/eslint/browser",
-    "@vercel/style-guide/eslint/node",
-    "@vercel/style-guide/eslint/typescript",
-    "@vercel/style-guide/eslint/react",
+    require.resolve("@vercel/style-guide/eslint/browser"),
+    require.resolve("@vercel/style-guide/eslint/react"),
+    require.resolve("@vercel/style-guide/eslint/typescript"),
+    require.resolve("@vercel/style-guide/eslint/node"),
     "turbo",
     "prettier",
     "plugin:@typescript-eslint/recommended",
     "plugin:@typescript-eslint/recommended-requiring-type-checking",
     "plugin:import/typescript",
-    "plugin:unicorn/recommended",
   ],
   settings: {
     "import/resolver": {

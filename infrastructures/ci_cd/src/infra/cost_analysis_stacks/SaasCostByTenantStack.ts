@@ -46,7 +46,9 @@ export class SaasCostByTenantStack extends cdk.Stack {
           "logs:CreateLogStream",
           "logs:PutLogEvents",
         ],
-        resources: ["arn:${AWS::Partition}:logs:*:*:*"],
+        resources: [
+          `arn:aws:logs:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:log-group:*`,
+        ],
         effect: iam.Effect.ALLOW,
       })
     );
@@ -96,7 +98,9 @@ export class SaasCostByTenantStack extends cdk.Stack {
           "logs:CreateLogStream",
           "logs:PutLogEvents",
         ],
-        resources: ["arn:${AWS::Partition}:logs:*:*:*"],
+        resources: [
+          `arn:aws:logs:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:log-group:*`,
+        ],
         effect: iam.Effect.ALLOW,
       })
     );

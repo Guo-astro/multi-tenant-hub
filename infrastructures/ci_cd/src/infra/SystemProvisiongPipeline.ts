@@ -63,7 +63,7 @@ export class SystemProvisiongPipeline extends cdk.Stack {
         environmentVariables: {
           IMAGE_TAG: { value: "latest" },
           IMAGE_REPO_URI: { value: lambdaLayerECR.repositoryUri },
-          AWS_DEFAULT_REGION: { value: process.env.CDK_DEFAULT_REGION },
+          AWS_DEFAULT_REGION: { value: cdk.Aws.REGION },
         },
         environment: {
           buildImage: codebuild.LinuxBuildImage.AMAZON_LINUX_2_4,
@@ -156,7 +156,7 @@ export class SystemProvisiongPipeline extends cdk.Stack {
           IMAGE_TAG: { value: "latest" },
           PYLAYER_IMAGE_TAG: { value: "latest" },
           IMAGE_REPO_URI: { value: lambdaECR.repositoryUri },
-          AWS_DEFAULT_REGION: { value: process.env.CDK_DEFAULT_REGION },
+          AWS_DEFAULT_REGION: { value: cdk.Aws.REGION },
           PYLAYER_IMAGE_URI: { value: lambdaLayerECR.repositoryUri },
           PUBLIC_LAYER_FETCH_ROLE_ARN: {
             value: lambdaBuildDockerAssumedRole.roleArn,

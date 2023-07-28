@@ -299,3 +299,9 @@ export type TenantDeploymentStackProps = StackProps & {
     environment: AllowedEnvs;
   };
 };
+
+export type CostAnalyticsPipelineProps = StackProps & {
+  tags: {
+    environment: AllowedEnvs;
+  };
+};

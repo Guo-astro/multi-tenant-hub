@@ -245,3 +245,16 @@ export const SharedCfnOutputs = {
   tenantStackProvisioninglambdaFunctionUrl:
     "tenantStackProvisioninglambdaFunctionUrl",
 };
+export const CostAnalyticsPipelineNameDict = {
+  artifactsBucketId: "artifactsBucketId",
+
+  costAnalyticsPipelineName: "costAnalyticsPipelineName",
+  Source: "Source",
+  owner: "Guo-astro",
+  repo: "multi-tenant-hub",
+  branch: "main",
+  GitHub_Source: "GitHub_Source",
+  costAnalyticsStackDeployProject: "costAnalyticsStackDeployProject",
+  costAnalyticsStackDeployAction: "costAnalyticsStackDeployAction",
+  costAnalyticPipeline: "costAnalyticPipeline",
+};
