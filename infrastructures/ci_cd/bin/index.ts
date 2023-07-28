@@ -11,6 +11,7 @@ import {
 import { ECRStack } from "@/infra/service_provider_stacks/ECRStack";
 import { SaasCostByTenantStack } from "@/infra/cost_analysis_stacks/SaasCostByTenantStack";
 import { CostAnalyticsPipeline } from "@/infra/CostAnalyticsPipeline";
+import { CostAndUsageReportStack } from "@/infra/cost_analysis_stacks/CostAndUsageReportStack";
 
 const app = new cdk.App();
 const tenantProvisoningPipelineName =
@@ -69,7 +70,7 @@ const costAnalyticsPipeline = new CostAnalyticsPipeline(
 //TODO: doc it
 const tenantProviderInfraStackName = app.node.tryGetContext(
   "tenantProviderInfraStackName"
-);
+) as string;
 
 const tenantProviderInfraStack = new TenantDeploymentStack(
   app,
@@ -83,7 +84,12 @@ const tenantProviderInfraStack = new TenantDeploymentStack(
 );
 const saasCostByTenantStack = new SaasCostByTenantStack(
   app,
-  "SaasCostByTenantStack"
+  "saasCostByTenantStack",
+  {
+    tags: {
+      environment: "development",
+    },
+  }
 );
 
 cdk.Tags.of(systemProvisioningPipeline).add("environment", "dev");

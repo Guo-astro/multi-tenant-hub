@@ -1,3 +1,4 @@
+/* eslint-disable no-new */
 import * as cdk from "aws-cdk-lib";
 import * as s3 from "aws-cdk-lib/aws-s3";
 import * as glueCatalog from "aws-cdk-lib/aws-glue"; // Import the glue-catalog module
@@ -6,18 +7,29 @@ import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import * as iam from "aws-cdk-lib/aws-iam";
 import * as events from "aws-cdk-lib/aws-events";
 import * as targets from "aws-cdk-lib/aws-events-targets";
-import { Construct } from "constructs";
+import type { Construct } from "constructs";
+import { CostAndUsageReportStack } from "./CostAndUsageReportStack";
+import type { SaasCostByTenantStackProps } from "@/shared/prop_extensions.types";
 
 export class SaasCostByTenantStack extends cdk.Stack {
-  constructor(scope: Construct, id: string, props?: cdk.StackProps) {
+  constructor(scope: Construct, id: string, props: SaasCostByTenantStackProps) {
     super(scope, id, props);
+    /**https://github.com/aws-cloudformation/cloudformation-coverage-roadmap/issues/1565 */
 
     const curBucket = new s3.Bucket(this, "CURBucket", {
+      bucketName: `curbucket${new Date().getTime()}`, // Set the explicit bucket name
+
       encryption: s3.BucketEncryption.S3_MANAGED,
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
       removalPolicy: cdk.RemovalPolicy.DESTROY,
     });
-
+    new CostAndUsageReportStack(this, "CostAndUsageReportStack", {
+      env: {
+        region: "us-east-1",
+      },
+      tags: { environment: props.tags.environment },
+      reportBucket: curBucket,
+    });
     const curDatabase = new glueCatalog.CfnDatabase(this, "AWSCURDatabase", {
       catalogId: cdk.Aws.ACCOUNT_ID,
       databaseInput: {
@@ -113,7 +125,7 @@ export class SaasCostByTenantStack extends cdk.Stack {
       })
     );
 
-    const curCrawler = new glueCatalog.CfnCrawler(this, "AWSCURCrawler", {
+    new glueCatalog.CfnCrawler(this, "AWSCURCrawler", {
       name: "AWSCURCrawler-Multi-tenant",
       databaseName: curDatabase.ref,
       role: curCrawlerComponentRole.roleArn,
@@ -228,7 +240,7 @@ export class SaasCostByTenantStack extends cdk.Stack {
     queryLogInsightsExecutionRole.addToPolicy(
       new iam.PolicyStatement({
         actions: ["s3:*"],
-        resources: [curBucket.bucketArn + "*"],
+        resources: [`${curBucket.bucketArn}*`],
         effect: iam.Effect.ALLOW,
       })
     );

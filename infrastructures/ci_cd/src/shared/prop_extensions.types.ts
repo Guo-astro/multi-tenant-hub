@@ -3,6 +3,7 @@ import { Artifact, Pipeline } from "aws-cdk-lib/aws-codepipeline";
 import { Table } from "aws-cdk-lib/aws-dynamodb";
 import * as apigateway from "aws-cdk-lib/aws-apigateway";
 import { Repository } from "aws-cdk-lib/aws-ecr";
+import { Bucket } from "aws-cdk-lib/aws-s3";
 
 type AllowedEnvs = "development" | "staging" | "production";
 
@@ -304,4 +305,16 @@ export type CostAnalyticsPipelineProps = StackProps & {
   tags: {
     environment: AllowedEnvs;
   };
+};
+export type SaasCostByTenantStackProps = StackProps & {
+  tags: {
+    environment: AllowedEnvs;
+  };
+};
+
+export type CostAndUsageReportStackProps = StackProps & {
+  tags: {
+    environment: AllowedEnvs;
+  };
+  reportBucket: Bucket;
 };

@@ -11,7 +11,7 @@
     "cdk": "cdk",
     "clean:deploy": "echo y| cdk destroy --all  && cdk deploy --all --require-approval never",
     "system:deploy": "echo y| cdk deploy systemProvisioningPipeline --method=direct --require-approval never",
-    "analytics:deploy": "echo y| cdk deploy SaasCostByTenantStack --method=direct --require-approval never",
+    "analytics:deploy": "echo y| cdk deploy saasCostByTenantStack --method=direct --require-approval never",
     "root:synth": "echo y| cdk synth systemProvisioningPipeline --method=direct --require-approval never",
     "system:synth": "pnpx cdk synth systemProviderInfraStack",
     "tenant:deploy": "echo y| cdk deploy tenantProvisiongPipeline --method=direct --require-approval never",
