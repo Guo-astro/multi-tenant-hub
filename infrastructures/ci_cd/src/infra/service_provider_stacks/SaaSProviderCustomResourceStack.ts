@@ -1,3 +1,4 @@
+/* eslint-disable no-new */
 import * as cdk from "aws-cdk-lib";
 import * as cloudformation from "aws-cdk-lib/aws-cloudformation";
 import * as lambda from "aws-cdk-lib/aws-lambda";
@@ -16,14 +17,17 @@ export class SaaSProviderCustomResourceStack extends cdk.NestedStack {
   ) {
     super(scope, id, props);
     const tenantId = props.tenantId;
-    const updateSettingsTableFunction = lambda.Function.fromFunctionArn(
+    const updateSettingsTableFunction = lambda.Function.fromFunctionAttributes(
       this,
       generateLogicalId(
         SystemProviderInfraStackNameDict.UpdateSettingsTableFunction,
         tenantId
       ),
+      {
+        functionArn: props.updateSettingsTableFunctionArn,
 
-      props.updateSettingsTableFunctionArn
+        sameEnvironment: true,
+      }
     );
 
     const provider = new Provider(
@@ -54,13 +58,17 @@ export class SaaSProviderCustomResourceStack extends cdk.NestedStack {
       }
     );
 
-    const updateTenantStackMapFunction = lambda.Function.fromFunctionArn(
+    const updateTenantStackMapFunction = lambda.Function.fromFunctionAttributes(
       this,
       generateLogicalId(
         SystemProviderInfraStackNameDict.UpdateTenantStackMapFunction,
         tenantId
       ),
-      props.updateTenantStackMapTableFunctionArn
+      {
+        functionArn: props.updateTenantStackMapTableFunctionArn,
+
+        sameEnvironment: true,
+      }
     );
 
     const tenantProvider = new Provider(

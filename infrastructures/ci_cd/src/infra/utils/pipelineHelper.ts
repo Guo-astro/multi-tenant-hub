@@ -1,5 +1,5 @@
 import * as cdk from "aws-cdk-lib";
-import * as codepipeline_actions from "aws-cdk-lib/aws-codepipeline-actions";
+import * as codepipelineActions from "aws-cdk-lib/aws-codepipeline-actions";
 import * as codebuild from "aws-cdk-lib/aws-codebuild";
 import { Construct } from "constructs";
 export function createPipelineUpdateAction(
@@ -52,7 +52,7 @@ export function createPipelineUpdateAction(
     },
   };
 
-  const pipeline_update_action = new codepipeline_actions.CodeBuildAction({
+  const pipelineUpdateAction = new codepipelineActions.CodeBuildAction({
     actionName: "pipeline-update",
     input: sourceOutput,
     outputs: [cdkBuildOutput],
@@ -66,5 +66,5 @@ export function createPipelineUpdateAction(
       ),
     }),
   });
-  return pipeline_update_action;
+  return pipelineUpdateAction;
 }

@@ -9,12 +9,14 @@ import {
   TenantProvisioningPipelineNameDict,
 } from "@/shared/Constants";
 import { ECRStack } from "@/infra/service_provider_stacks/ECRStack";
+import { CostAnalyticsDeploymentStack } from "@/infra/cost_analysis_stacks/CostDeploymentStack";
 
 const app = new cdk.App();
 const tenantProvisoningPipelineName =
   TenantProvisioningPipelineNameDict.tenantProvisiongPipelineName;
 const ecrStack = new ECRStack(app, "ecrStack", {
   env: {
+    account: process.env.CDK_DEFAULT_ACCOUNT,
     region: "ap-northeast-1",
   },
   tags: {
@@ -23,49 +25,6 @@ const ecrStack = new ECRStack(app, "ecrStack", {
 });
 const lambdaECR = ecrStack.lambdaECR;
 const lambdaLayerECR = ecrStack.lambdaLayerECR;
-const systemProvisioningPipeline = new SystemProvisiongPipeline(
-  app,
-  SystemProviderProvisioningPipelineNameDict.systemProviderProvisiongPipelineName,
-  {
-    env: {
-      region: "ap-northeast-1",
-    },
-    tags: {
-      environment: "development",
-    },
-    tenantProvisoningPipelineName,
-    lambdaECR,
-    lambdaLayerECR,
-  }
-);
-
-const systemProviderInfraStack = new DeploymentStack(
-  app,
-  "systemProviderInfraStack",
-  {
-    env: {
-      region: "ap-northeast-1",
-    },
-    tags: {
-      environment: "development",
-    },
-    lambdaEcrRepositoryUri: lambdaECR.repositoryUri,
-  }
-);
-
-const tenantProvisioningPipeline = new TenantProvisioningPipeline(
-  app,
-  TenantProvisioningPipelineNameDict.tenantProvisiongPipelineName,
-  {
-    env: {
-      region: "ap-northeast-1",
-    },
-    tags: {
-      environment: "development",
-    },
-    tenantProvisoningPipelineName,
-  }
-);
 
 //TODO: doc it
 const tenantProviderInfraStackName = app.node.tryGetContext(
@@ -77,6 +36,8 @@ const tenantProviderInfraStack = new TenantDeploymentStack(
   "tenantProviderInfraStack",
   {
     env: {
+      account: process.env.CDK_DEFAULT_ACCOUNT,
+
       region: "ap-northeast-1",
     },
     stackName: tenantProviderInfraStackName,
@@ -85,11 +46,77 @@ const tenantProviderInfraStack = new TenantDeploymentStack(
     },
   }
 );
-cdk.Tags.of(systemProvisioningPipeline).add("environment", "dev");
-cdk.Tags.of(tenantProvisioningPipeline).add("environment", "dev");
+
+const systemProviderInfraStack = new DeploymentStack(
+  app,
+  "systemProviderInfraStack",
+  {
+    env: {
+      account: process.env.CDK_DEFAULT_ACCOUNT,
+
+      region: "ap-northeast-1",
+    },
+    tags: {
+      environment: "development",
+    },
+    lambdaEcrRepositoryUri: lambdaECR.repositoryUri,
+  }
+);
+const costAnalyticsDeploymentStack = new CostAnalyticsDeploymentStack(
+  app,
+  "costAnalyticsDeploymentStack",
+  {
+    env: {
+      account: process.env.CDK_DEFAULT_ACCOUNT,
+
+      region: "us-east-1",
+    },
+    stackName: tenantProviderInfraStackName,
+    tags: {
+      environment: "development",
+    },
+  }
+);
+const systemProvisioningPipeline = new SystemProvisiongPipeline(
+  app,
+  SystemProviderProvisioningPipelineNameDict.systemProviderProvisiongPipelineName,
+  {
+    env: {
+      account: process.env.CDK_DEFAULT_ACCOUNT,
+
+      region: "ap-northeast-1",
+    },
+    tags: {
+      environment: "development",
+    },
+    tenantProvisoningPipelineName,
+    lambdaECR,
+    lambdaLayerECR,
+  }
+);
+
+const tenantProvisioningPipeline = new TenantProvisioningPipeline(
+  app,
+  TenantProvisioningPipelineNameDict.tenantProvisiongPipelineName,
+  {
+    env: {
+      account: process.env.CDK_DEFAULT_ACCOUNT,
+
+      region: "ap-northeast-1",
+    },
+    tags: {
+      environment: "development",
+    },
+    tenantProvisoningPipelineName,
+  }
+);
 
 cdk.Tags.of(systemProviderInfraStack).add("environment", "dev");
 cdk.Tags.of(tenantProviderInfraStack).add("environment", "dev");
+cdk.Tags.of(costAnalyticsDeploymentStack).add("environment", "dev");
+
+cdk.Tags.of(systemProvisioningPipeline).add("environment", "dev");
+cdk.Tags.of(tenantProvisioningPipeline).add("environment", "dev");
 
 // const tags = [
 //   { key: "author", value: "guo" },

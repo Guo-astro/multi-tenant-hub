@@ -1,3 +1,4 @@
+/* eslint-disable no-new */
 import * as cdk from "aws-cdk-lib";
 import * as cloudformation from "aws-cdk-lib/aws-cloudformation";
 import * as lambda from "aws-cdk-lib/aws-lambda";
@@ -17,12 +18,14 @@ export class TenantCustomResourceStack extends cdk.NestedStack {
     super(scope, id, props);
     const stageName = props.tags.environment;
     const tenantId = props.tenantId;
-    const updateUsagePlanFunction = lambda.Function.fromFunctionArn(
+    const updateUsagePlanFunction = lambda.Function.fromFunctionAttributes(
       this,
 
       generateLogicalId(TenantSystemNameDict.updateUsagePlanFunction, tenantId),
-
-      props.updateUsagePlanFunctionArn
+      {
+        functionArn: props.updateUsagePlanFunctionArn,
+        sameEnvironment: true,
+      }
     );
 
     const associateUsagePlanWithTenantApiProvider = new Provider(
@@ -59,14 +62,18 @@ export class TenantCustomResourceStack extends cdk.NestedStack {
       }
     );
 
-    const updateTenantApiGatewayUrlFunction = lambda.Function.fromFunctionArn(
-      this,
-      generateLogicalId(
-        TenantSystemNameDict.updateTenantApiGatewayUrlFunction,
-        tenantId
-      ),
-      props.updateTenantApiGatewayUrlFunctionArn
-    );
+    const updateTenantApiGatewayUrlFunction =
+      lambda.Function.fromFunctionAttributes(
+        this,
+        generateLogicalId(
+          TenantSystemNameDict.updateTenantApiGatewayUrlFunction,
+          tenantId
+        ),
+        {
+          functionArn: props.updateTenantApiGatewayUrlFunctionArn,
+          sameEnvironment: true,
+        }
+      );
 
     const updateTenantApiGatewayUrlProvider = new Provider(
       this,

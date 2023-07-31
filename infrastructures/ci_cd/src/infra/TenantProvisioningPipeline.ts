@@ -2,7 +2,7 @@ import * as cdk from "aws-cdk-lib";
 import { SecretValue } from "aws-cdk-lib";
 import { Construct } from "constructs";
 import * as iam from "aws-cdk-lib/aws-iam";
-import * as codepipeline_actions from "aws-cdk-lib/aws-codepipeline-actions";
+import * as codepipelineActions from "aws-cdk-lib/aws-codepipeline-actions";
 import * as codebuild from "aws-cdk-lib/aws-codebuild";
 import * as codepipeline from "aws-cdk-lib/aws-codepipeline";
 import * as ecr from "aws-cdk-lib/aws-ecr";
@@ -139,17 +139,17 @@ export class TenantProvisioningPipeline extends cdk.Stack {
     //////////////////////////////////////////////////////
     const sourceOutput = new codepipeline.Artifact();
 
-    const sourceAction = new codepipeline_actions.GitHubSourceAction({
+    const sourceAction = new codepipelineActions.GitHubSourceAction({
       actionName: TenantProvisioningPipelineNameDict.GitHub_Source,
       owner,
       repo,
       branch,
       oauthToken: githubAccessToken,
       output: sourceOutput,
-      // trigger: codepipeline_actions.GitHubTrigger.NONE,
+      // trigger: codepipelineActions.GitHubTrigger.NONE,
     });
     const cdkBuildOutput = new codepipeline.Artifact("pipeline-cdk-build");
-    const pipeline_update_action = createPipelineUpdateAction(
+    const pipelineUpdateAction = createPipelineUpdateAction(
       this,
       sourceOutput,
       TenantSystemNameDict.tenantProviderInfraStackName,
@@ -174,7 +174,7 @@ export class TenantProvisioningPipeline extends cdk.Stack {
       })
     );
 
-    const tenantStackBuildAction = new codepipeline_actions.LambdaInvokeAction({
+    const tenantStackBuildAction = new codepipelineActions.LambdaInvokeAction({
       actionName: TenantProvisioningPipelineNameDict.tenantStackBuildAction,
       lambda: tenantStackProvisioninglambdaFunction,
       inputs: [sourceOutput],
@@ -308,7 +308,7 @@ export class TenantProvisioningPipeline extends cdk.Stack {
     });
 
     tenantStackDeployProject.addToRolePolicy(infraDeploymentRolePolicy);
-    const tenantStackDeployAction = new codepipeline_actions.CodeBuildAction({
+    const tenantStackDeployAction = new codepipelineActions.CodeBuildAction({
       actionName: TenantProvisioningPipelineNameDict.tenantStackDeployAction,
       project: tenantStackDeployProject,
       input: sourceOutput,
@@ -336,12 +336,12 @@ export class TenantProvisioningPipeline extends cdk.Stack {
           },
           {
             stageName: "pipeline-build",
-            actions: [pipeline_update_action],
+            actions: [pipelineUpdateAction],
           },
           {
             stageName: "pipeline-transform",
             actions: [
-              new codepipeline_actions.CloudFormationCreateUpdateStackAction({
+              new codepipelineActions.CloudFormationCreateUpdateStackAction({
                 actionName: "Pipeline_Update",
                 stackName:
                   TenantProvisioningPipelineNameDict.tenantProvisiongPipelineName,

@@ -1,3 +1,4 @@
+/* eslint-disable no-new */
 import * as cdk from "aws-cdk-lib";
 import * as s3 from "aws-cdk-lib/aws-s3";
 import * as glueCatalog from "aws-cdk-lib/aws-glue"; // Import the glue-catalog module

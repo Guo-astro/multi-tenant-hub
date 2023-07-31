@@ -1,8 +1,9 @@
+/* eslint-disable no-new */
 import * as cdk from "aws-cdk-lib";
 import { SecretValue } from "aws-cdk-lib";
 import { Construct } from "constructs";
 import * as iam from "aws-cdk-lib/aws-iam";
-import * as codepipeline_actions from "aws-cdk-lib/aws-codepipeline-actions";
+import * as codepipelineActions from "aws-cdk-lib/aws-codepipeline-actions";
 import * as codebuild from "aws-cdk-lib/aws-codebuild";
 import * as codepipeline from "aws-cdk-lib/aws-codepipeline";
 import { SystemProvisiongPipelineProps } from "@/shared/prop_extensions.types";
@@ -12,7 +13,6 @@ import {
   SystemProviderInfraStackNameDict,
   SystemProviderProvisioningPipelineNameDict,
   TenantProvisioningPipelineNameDict,
-  TenantSystemNameDict,
 } from "@/shared/Constants";
 import { generateLogicalId, generatePhysicalName } from "./utils/Utils";
 import { createPipelineUpdateAction } from "./utils/pipelineHelper";
@@ -38,7 +38,7 @@ export class SystemProvisiongPipeline extends cdk.Stack {
     const lambdaLayerBuildOutput = new codepipeline.Artifact();
     const lambdaBuildOutput = new codepipeline.Artifact();
 
-    const sourceAction = new codepipeline_actions.GitHubSourceAction({
+    const sourceAction = new codepipelineActions.GitHubSourceAction({
       actionName: "GitHub_Source",
       owner,
       repo,
@@ -96,7 +96,7 @@ export class SystemProvisiongPipeline extends cdk.Stack {
       ],
     });
     lambdaLayerBuildProject.addToRolePolicy(lambdaLayerBuildRolePolicy);
-    const lambdaLayerBuildAction = new codepipeline_actions.CodeBuildAction({
+    const lambdaLayerBuildAction = new codepipelineActions.CodeBuildAction({
       actionName: "lamda-layer-build",
       project: lambdaLayerBuildProject,
       input: sourceOutput,
@@ -176,7 +176,7 @@ export class SystemProvisiongPipeline extends cdk.Stack {
         role: lambdaBuildProjectAssumedRole,
       }
     );
-    const lambdaBuildAction = new codepipeline_actions.CodeBuildAction({
+    const lambdaBuildAction = new codepipelineActions.CodeBuildAction({
       actionName: "lambda-build",
       project: lambdaBuildProject,
       input: sourceOutput,
@@ -432,7 +432,7 @@ export class SystemProvisiongPipeline extends cdk.Stack {
       }
     );
 
-    const infraDeploymentAction = new codepipeline_actions.CodeBuildAction({
+    const infraDeploymentAction = new codepipelineActions.CodeBuildAction({
       actionName: "Deploy",
       project: infraDeploymentProject,
       input: sourceOutput,
@@ -509,7 +509,7 @@ export class SystemProvisiongPipeline extends cdk.Stack {
     adminAppDeploymentProject.addToRolePolicy(
       adminAppDeploymentProjectRolePolicy
     );
-    const adminAppDeploymentAction = new codepipeline_actions.CodeBuildAction({
+    const adminAppDeploymentAction = new codepipelineActions.CodeBuildAction({
       environmentVariables: {
         ADMIN_SITE_BUCKET: {
           value: infraDeploymentAction.variable(
@@ -595,7 +595,7 @@ export class SystemProvisiongPipeline extends cdk.Stack {
     tenantAppDeploymentProject.addToRolePolicy(
       tenantAppDeploymentProjectRolePolicy
     );
-    const tenantAppDeploymentAction = new codepipeline_actions.CodeBuildAction({
+    const tenantAppDeploymentAction = new codepipelineActions.CodeBuildAction({
       environmentVariables: {
         APP_SITE_BUCKET: {
           value: infraDeploymentAction.variable(
@@ -676,7 +676,7 @@ export class SystemProvisiongPipeline extends cdk.Stack {
       onBoardingAppDeploymentProjectRolePolicy
     );
     const onBoardingAppDeploymentAction =
-      new codepipeline_actions.CodeBuildAction({
+      new codepipelineActions.CodeBuildAction({
         environmentVariables: {
           ONBOARDING_SITE_BUCKET: {
             value: infraDeploymentAction.variable(
@@ -707,7 +707,7 @@ export class SystemProvisiongPipeline extends cdk.Stack {
         input: sourceOutput,
       });
 
-    const pipeline = new codepipeline.Pipeline(
+    new codepipeline.Pipeline(
       this,
       generateLogicalId(
         SystemProviderProvisioningPipelineNameDict.systemProviderProvisiongPipelineName
@@ -758,13 +758,13 @@ export class SystemProvisiongPipeline extends cdk.Stack {
             stageName: "cost-analytics-deployment",
             actions: [
               new CloudFormationCreateUpdateStackAction({
-                region: props.env?.region,
+                region: "us-east-1",
                 actionName: "CostAnalyticsPipeline_Deploy",
                 stackName:
                   CostAnalyticsPipelineNameDict.costAnalyticsPipelineName,
 
                 templatePath: cdkBuildOutput.atPath(
-                  `infrastructures/ci_cd/cdk.out/costAnalyticsPipeline.template.json`
+                  `infrastructures/ci_cd/cdk.out/costAnalyticsDeploymentStack.template.json`
                 ),
                 adminPermissions: true,
               }),
