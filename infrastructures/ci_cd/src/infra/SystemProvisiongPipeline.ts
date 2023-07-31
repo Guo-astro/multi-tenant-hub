@@ -758,7 +758,7 @@ export class SystemProvisiongPipeline extends cdk.Stack {
             stageName: "cost-analytics-deployment",
             actions: [
               new CloudFormationCreateUpdateStackAction({
-                account: cdk.Aws.ACCOUNT_ID,
+                account: process.env.CDK_DEFAULT_ACCOUNT,
                 region: "us-east-1",
                 actionName: "CostAnalyticsPipeline_Deploy",
                 stackName:
