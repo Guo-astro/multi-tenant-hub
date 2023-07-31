@@ -1,4 +1,3 @@
-/* eslint-disable no-new */
 import * as cdk from "aws-cdk-lib";
 import * as s3 from "aws-cdk-lib/aws-s3";
 import * as glueCatalog from "aws-cdk-lib/aws-glue"; // Import the glue-catalog module
@@ -8,28 +7,22 @@ import * as iam from "aws-cdk-lib/aws-iam";
 import * as events from "aws-cdk-lib/aws-events";
 import * as targets from "aws-cdk-lib/aws-events-targets";
 import type { Construct } from "constructs";
-import { CostAndUsageReportStack } from "./CostAndUsageReportStack";
 import type { SaasCostByTenantStackProps } from "@/shared/prop_extensions.types";
 
 export class SaasCostByTenantStack extends cdk.Stack {
+  public readonly curBucket: cdk.aws_s3.Bucket;
   constructor(scope: Construct, id: string, props: SaasCostByTenantStackProps) {
     super(scope, id, props);
     /**https://github.com/aws-cloudformation/cloudformation-coverage-roadmap/issues/1565 */
 
-    const curBucket = new s3.Bucket(this, "CURBucket", {
+    this.curBucket = new s3.Bucket(this, "CURBucket", {
       bucketName: `curbucket${new Date().getTime()}`, // Set the explicit bucket name
 
       encryption: s3.BucketEncryption.S3_MANAGED,
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
       removalPolicy: cdk.RemovalPolicy.DESTROY,
     });
-    new CostAndUsageReportStack(this, "CostAndUsageReportStack", {
-      env: {
-        region: "us-east-1",
-      },
-      tags: { environment: props.tags.environment },
-      reportBucket: curBucket,
-    });
+
     const curDatabase = new glueCatalog.CfnDatabase(this, "AWSCURDatabase", {
       catalogId: cdk.Aws.ACCOUNT_ID,
       databaseInput: {
@@ -82,7 +75,7 @@ export class SaasCostByTenantStack extends cdk.Stack {
     curCrawlerComponentRole.addToPolicy(
       new iam.PolicyStatement({
         actions: ["s3:GetObject", "s3:PutObject"],
-        resources: [`${curBucket.bucketArn}*`],
+        resources: [`${this.curBucket.bucketArn}*`],
         effect: iam.Effect.ALLOW,
       })
     );
@@ -132,7 +125,7 @@ export class SaasCostByTenantStack extends cdk.Stack {
       targets: {
         s3Targets: [
           {
-            path: `s3://${curBucket.bucketName}/curoutput`,
+            path: `s3://${this.curBucket.bucketName}/curoutput`,
             exclusions: [
               "**.json",
               "**.yml",
@@ -240,7 +233,7 @@ export class SaasCostByTenantStack extends cdk.Stack {
     queryLogInsightsExecutionRole.addToPolicy(
       new iam.PolicyStatement({
         actions: ["s3:*"],
-        resources: [`${curBucket.bucketArn}*`],
+        resources: [`${this.curBucket.bucketArn}*`],
         effect: iam.Effect.ALLOW,
       })
     );
@@ -279,7 +272,7 @@ export class SaasCostByTenantStack extends cdk.Stack {
         runtime: lambda.Runtime.PYTHON_3_9,
         role: queryLogInsightsExecutionRole,
         environment: {
-          ATHENA_S3_OUTPUT: curBucket.bucketName,
+          ATHENA_S3_OUTPUT: this.curBucket.bucketName,
         },
       }
     );
@@ -294,7 +287,7 @@ export class SaasCostByTenantStack extends cdk.Stack {
         runtime: lambda.Runtime.PYTHON_3_9,
         role: queryLogInsightsExecutionRole,
         environment: {
-          ATHENA_S3_OUTPUT: curBucket.bucketName,
+          ATHENA_S3_OUTPUT: this.curBucket.bucketName,
         },
       }
     );
@@ -311,7 +304,7 @@ export class SaasCostByTenantStack extends cdk.Stack {
 
     new cdk.CfnOutput(this, "CURBucketname", {
       description: "The name of S3 bucket name",
-      value: curBucket.bucketName,
+      value: this.curBucket.bucketName,
       exportName: "CURBucketname",
     });
 

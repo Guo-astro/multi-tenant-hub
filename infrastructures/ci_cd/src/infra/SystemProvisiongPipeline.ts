@@ -7,6 +7,7 @@ import * as codebuild from "aws-cdk-lib/aws-codebuild";
 import * as codepipeline from "aws-cdk-lib/aws-codepipeline";
 import { SystemProvisiongPipelineProps } from "@/shared/prop_extensions.types";
 import {
+  CostAnalyticsPipelineNameDict,
   SystemProviderCfnOutputs,
   SystemProviderInfraStackNameDict,
   SystemProviderProvisioningPipelineNameDict,
@@ -15,6 +16,7 @@ import {
 } from "@/shared/Constants";
 import { generateLogicalId, generatePhysicalName } from "./utils/Utils";
 import { createPipelineUpdateAction } from "./utils/pipelineHelper";
+import { CloudFormationCreateUpdateStackAction } from "aws-cdk-lib/aws-codepipeline-actions";
 
 export class SystemProvisiongPipeline extends cdk.Stack {
   constructor(
@@ -45,7 +47,7 @@ export class SystemProvisiongPipeline extends cdk.Stack {
       output: sourceOutput,
     });
     const cdkBuildOutput = new codepipeline.Artifact("pipeline-cdk-build");
-    const pipeline_update_action = createPipelineUpdateAction(
+    const pipelineUpdateAction = createPipelineUpdateAction(
       this,
       sourceOutput,
       SystemProviderInfraStackNameDict.systemProviderInfraStack,
@@ -718,17 +720,17 @@ export class SystemProvisiongPipeline extends cdk.Stack {
         restartExecutionOnUpdate: true,
         stages: [
           {
-            stageName: "Source",
+            stageName: "source",
             actions: [sourceAction],
           },
           {
             stageName: "pipeline-build",
-            actions: [pipeline_update_action],
+            actions: [pipelineUpdateAction],
           },
           {
             stageName: "pipeline-transform",
             actions: [
-              new codepipeline_actions.CloudFormationCreateUpdateStackAction({
+              new CloudFormationCreateUpdateStackAction({
                 actionName: "Pipeline_Update",
                 stackName:
                   SystemProviderProvisioningPipelineNameDict.systemProviderProvisiongPipelineName,
@@ -749,8 +751,24 @@ export class SystemProvisiongPipeline extends cdk.Stack {
             actions: [lambdaBuildAction],
           },
           {
-            stageName: "infraDeployment",
+            stageName: "infra-deployment",
             actions: [infraDeploymentAction],
+          },
+          {
+            stageName: "cost-analytics-deployment",
+            actions: [
+              new CloudFormationCreateUpdateStackAction({
+                region: props.env?.region,
+                actionName: "CostAnalyticsPipeline_Deploy",
+                stackName:
+                  CostAnalyticsPipelineNameDict.costAnalyticsPipelineName,
+
+                templatePath: cdkBuildOutput.atPath(
+                  `infrastructures/ci_cd/cdk.out/costAnalyticsPipeline.template.json`
+                ),
+                adminPermissions: true,
+              }),
+            ],
           },
           {
             stageName: "adminAppDeployment",

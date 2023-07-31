@@ -318,3 +318,9 @@ export type CostAndUsageReportStackProps = StackProps & {
   };
   reportBucket: Bucket;
 };
+
+export type CostDeploymentStackProps = StackProps & {
+  tags: {
+    environment: AllowedEnvs;
+  };
+};

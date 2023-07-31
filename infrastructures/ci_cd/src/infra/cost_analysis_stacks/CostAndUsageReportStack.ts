@@ -14,7 +14,7 @@ export class CostAndUsageReportStack extends cdk.Stack {
     const reportBucket = props.reportBucket;
     // Create an IAM role for Cost and Usage Report
     const reportRole = new iam.Role(this, "CostAndUsageReportRole", {
-      assumedBy: new iam.ServicePrincipal("cur.amazonaws.com"),
+      assumedBy: new iam.ServicePrincipal("billingreports.amazonaws.com"),
     });
 
     // Attach the necessary IAM policies to the role

@@ -9,14 +9,14 @@ import {
   TenantProvisioningPipelineNameDict,
 } from "@/shared/Constants";
 import { ECRStack } from "@/infra/service_provider_stacks/ECRStack";
-import { SaasCostByTenantStack } from "@/infra/cost_analysis_stacks/SaasCostByTenantStack";
-import { CostAnalyticsPipeline } from "@/infra/CostAnalyticsPipeline";
-import { CostAndUsageReportStack } from "@/infra/cost_analysis_stacks/CostAndUsageReportStack";
 
 const app = new cdk.App();
 const tenantProvisoningPipelineName =
   TenantProvisioningPipelineNameDict.tenantProvisiongPipelineName;
 const ecrStack = new ECRStack(app, "ecrStack", {
+  env: {
+    region: "ap-northeast-1",
+  },
   tags: {
     environment: "development",
   },
@@ -27,6 +27,9 @@ const systemProvisioningPipeline = new SystemProvisiongPipeline(
   app,
   SystemProviderProvisioningPipelineNameDict.systemProviderProvisiongPipelineName,
   {
+    env: {
+      region: "ap-northeast-1",
+    },
     tags: {
       environment: "development",
     },
@@ -40,6 +43,9 @@ const systemProviderInfraStack = new DeploymentStack(
   app,
   "systemProviderInfraStack",
   {
+    env: {
+      region: "ap-northeast-1",
+    },
     tags: {
       environment: "development",
     },
@@ -51,6 +57,9 @@ const tenantProvisioningPipeline = new TenantProvisioningPipeline(
   app,
   TenantProvisioningPipelineNameDict.tenantProvisiongPipelineName,
   {
+    env: {
+      region: "ap-northeast-1",
+    },
     tags: {
       environment: "development",
     },
@@ -58,15 +67,6 @@ const tenantProvisioningPipeline = new TenantProvisioningPipeline(
   }
 );
 
-const costAnalyticsPipeline = new CostAnalyticsPipeline(
-  app,
-  "costAnalyticsPipeline",
-  {
-    tags: {
-      environment: "development",
-    },
-  }
-);
 //TODO: doc it
 const tenantProviderInfraStackName = app.node.tryGetContext(
   "tenantProviderInfraStackName"
@@ -76,28 +76,20 @@ const tenantProviderInfraStack = new TenantDeploymentStack(
   app,
   "tenantProviderInfraStack",
   {
+    env: {
+      region: "ap-northeast-1",
+    },
     stackName: tenantProviderInfraStackName,
     tags: {
       environment: "development",
     },
   }
 );
-const saasCostByTenantStack = new SaasCostByTenantStack(
-  app,
-  "saasCostByTenantStack",
-  {
-    tags: {
-      environment: "development",
-    },
-  }
-);
-
 cdk.Tags.of(systemProvisioningPipeline).add("environment", "dev");
 cdk.Tags.of(tenantProvisioningPipeline).add("environment", "dev");
 
 cdk.Tags.of(systemProviderInfraStack).add("environment", "dev");
 cdk.Tags.of(tenantProviderInfraStack).add("environment", "dev");
-cdk.Tags.of(saasCostByTenantStack).add("environment", "dev");
 
 // const tags = [
 //   { key: "author", value: "guo" },
