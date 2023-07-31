@@ -306,13 +306,13 @@ export type CostAnalyticsPipelineProps = StackProps & {
     environment: AllowedEnvs;
   };
 };
-export type SaasCostByTenantStackProps = StackProps & {
+export type SaasCostByTenantStackProps = NestedStackProps & {
   tags: {
     environment: AllowedEnvs;
   };
 };
 
-export type CostAndUsageReportStackProps = StackProps & {
+export type CostAndUsageReportStackProps = NestedStackProps & {
   tags: {
     environment: AllowedEnvs;
   };
