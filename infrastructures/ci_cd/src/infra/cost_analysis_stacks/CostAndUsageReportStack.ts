@@ -4,7 +4,7 @@ import type { Construct } from "constructs";
 import { aws_cur as cur } from "aws-cdk-lib";
 import type { CostAndUsageReportStackProps } from "@/shared/prop_extensions.types";
 
-export class CostAndUsageReportStack extends cdk.Stack {
+export class CostAndUsageReportStack extends cdk.NestedStack {
   constructor(
     scope: Construct,
     id: string,

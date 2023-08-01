@@ -10,7 +10,7 @@ import * as targets from "aws-cdk-lib/aws-events-targets";
 import type { Construct } from "constructs";
 import type { SaasCostByTenantStackProps } from "@/shared/prop_extensions.types";
 
-export class SaasCostByTenantStack extends cdk.Stack {
+export class SaasCostByTenantStack extends cdk.NestedStack {
   public readonly curBucket: cdk.aws_s3.Bucket;
   constructor(scope: Construct, id: string, props: SaasCostByTenantStackProps) {
     super(scope, id, props);
