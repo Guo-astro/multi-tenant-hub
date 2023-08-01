@@ -751,10 +751,6 @@ export class SystemProvisiongPipeline extends cdk.Stack {
             actions: [lambdaBuildAction],
           },
           {
-            stageName: "infra-deployment",
-            actions: [infraDeploymentAction],
-          },
-          {
             stageName: "cost-analytics-deployment",
             actions: [
               new CloudFormationCreateUpdateStackAction({
@@ -771,6 +767,11 @@ export class SystemProvisiongPipeline extends cdk.Stack {
               }),
             ],
           },
+          {
+            stageName: "infra-deployment",
+            actions: [infraDeploymentAction],
+          },
+
           {
             stageName: "adminAppDeployment",
             actions: [adminAppDeploymentAction],
