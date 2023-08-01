@@ -12,7 +12,7 @@
 ##
 
 echo "$(date) cleaning up buckets..."
-for i in $(aws s3 ls | awk '{print $3}' | grep -E "^cicdstack-*|^deploy-*|systemprovisioning*|tenantprovisioningpipeli-*|tenantprovisiong*|systemawesome*|pipelinestack*|costanalyticspipeline*"); do
+for i in $(aws s3 ls | awk '{print $3}' | grep -E "^cicdstack-*|^deploy-*|systemprovisioning*|tenantprovisioningpipeli-*|tenantprovisiong*|systemawesome*|pipelinestack*|costanalyticspipeline*|curbucket*"); do
 
     if [[ -z "${skip_flag}" ]]; then
         read -p "Delete bucket with name s3://${i} [Y/n] " -n 1 -r

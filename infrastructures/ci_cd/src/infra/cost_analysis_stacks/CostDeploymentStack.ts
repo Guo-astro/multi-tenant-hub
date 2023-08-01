@@ -341,7 +341,7 @@ export class CostAnalyticsDeploymentStack extends cdk.Stack {
       format: "Parquet", // Can be 'Parquet' or 'CSV'
       s3Bucket: this.curBucket.bucketName,
       s3Prefix: "curoutput/",
-      s3Region: cdk.Aws.REGION,
+      s3Region: props.env!.region!,
       compression: "GZIP", // Can be 'ZIP' or 'GZIP'
       refreshClosedReports: true, // Set to true to refresh closed reports
       reportVersioning: "CREATE_NEW_REPORT", // Can be 'CREATE_NEW_REPORT' or 'OVERWRITE_REPORT'
