@@ -2,6 +2,7 @@ import * as cdk from "aws-cdk-lib";
 import * as iam from "aws-cdk-lib/aws-iam";
 import type { Construct } from "constructs";
 import { aws_cur as cur } from "aws-cdk-lib";
+import type { CfnBucket } from "aws-cdk-lib/aws-s3";
 import type { CostAndUsageReportStackProps } from "@/shared/prop_extensions.types";
 
 export class CostAndUsageReportStack extends cdk.NestedStack {
@@ -12,16 +13,20 @@ export class CostAndUsageReportStack extends cdk.NestedStack {
   ) {
     super(scope, id, props);
     const reportBucket = props.reportBucket;
-    // Create an IAM role for Cost and Usage Report
-    const reportRole = new iam.Role(this, "CostAndUsageReportRole", {
-      assumedBy: new iam.ServicePrincipal("billingreports.amazonaws.com"),
-    });
 
-    // Attach the necessary IAM policies to the role
-    reportRole.addToPolicy(
+    reportBucket.addToResourcePolicy(
       new iam.PolicyStatement({
-        actions: ["s3:PutObject"],
-        resources: [`${reportBucket.bucketArn}/*`],
+        resources: [reportBucket.arnForObjects("*"), reportBucket.bucketArn],
+        actions: [
+          "s3:GetBucketAcl",
+          "s3:GetBucketPolicy",
+          "s3:PutObject",
+          "s3:GetObject",
+        ],
+        principals: [
+          new iam.ServicePrincipal("billingreports.amazonaws.com"),
+          new iam.AccountPrincipal(this.account),
+        ],
       })
     );
 
@@ -37,6 +42,6 @@ export class CostAndUsageReportStack extends cdk.NestedStack {
       compression: "GZIP", // Can be 'ZIP' or 'GZIP'
       refreshClosedReports: true, // Set to true to refresh closed reports
       reportVersioning: "CREATE_NEW_REPORT", // Can be 'CREATE_NEW_REPORT' or 'OVERWRITE_REPORT'
-    });
+    }).addDependsOn(reportBucket.node.defaultChild as CfnBucket);
   }
 }

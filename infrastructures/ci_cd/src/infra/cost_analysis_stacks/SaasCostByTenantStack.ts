@@ -18,7 +18,7 @@ export class SaasCostByTenantStack extends cdk.NestedStack {
 
     this.curBucket = new s3.Bucket(this, "CURBucket", {
       bucketName: `curbucket${new Date().getTime()}`, // Set the explicit bucket name
-
+      autoDeleteObjects: true,
       encryption: s3.BucketEncryption.S3_MANAGED,
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
       removalPolicy: cdk.RemovalPolicy.DESTROY,
