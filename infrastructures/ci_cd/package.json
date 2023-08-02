@@ -10,6 +10,7 @@
     "test": "jest",
     "cdk": "cdk",
     "clean:deploy": "echo y| cdk destroy --all  && cdk deploy --all --require-approval never",
+    "costAnalysis:deploy": "echo y| cdk deploy costAnalyticsDeploymentStack --require-approval never",
     "system:deploy": "echo y| cdk deploy systemProvisioningPipeline --method=direct --require-approval never",
     "root:synth": "echo y| cdk synth systemProvisioningPipeline --method=direct --require-approval never",
     "system:synth": "pnpx cdk synth systemProviderInfraStack",

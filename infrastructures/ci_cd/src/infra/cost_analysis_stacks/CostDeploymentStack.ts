@@ -342,7 +342,7 @@ export class CostAnalyticsDeploymentStack extends cdk.Stack {
       s3Bucket: this.curBucket.bucketName,
       s3Prefix: "curoutput/",
       s3Region: props.env!.region!,
-      compression: "GZIP", // Can be 'ZIP' or 'GZIP'
+      compression: "Parquet", // Can be 'ZIP' or 'GZIP'
       refreshClosedReports: true, // Set to true to refresh closed reports
       reportVersioning: "CREATE_NEW_REPORT", // Can be 'CREATE_NEW_REPORT' or 'OVERWRITE_REPORT'
     }).addDependsOn(this.curBucket.node.defaultChild as s3.CfnBucket);
