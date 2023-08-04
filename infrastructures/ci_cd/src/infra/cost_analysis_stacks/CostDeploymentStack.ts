@@ -16,8 +16,25 @@ export class CostAnalyticsDeploymentStack extends cdk.Stack {
 
   constructor(scope: Construct, id: string, props: CostDeploymentStackProps) {
     super(scope, id, props);
+    const jstDate = new Date().toLocaleString("en-US", {
+      timeZone: "Asia/Tokyo",
+    });
+    const dateObj = new Date(jstDate);
+    const year = dateObj.getFullYear().toString().padStart(4, "0");
+    const month = (dateObj.getMonth() + 1).toString().padStart(2, "0");
+    const day = dateObj.getDate().toString().padStart(2, "0");
+    const hours = dateObj.getHours().toString().padStart(2, "0");
+    const minutes = dateObj.getMinutes().toString().padStart(2, "0");
+    const seconds = dateObj.getSeconds().toString().padStart(2, "0");
+    const milliseconds = dateObj.getMilliseconds().toString().padStart(3, "0");
+
+    // Concatenate the components in the desired format
+    const iso8601Format = `${year}${month}${day}t${hours}${minutes}${seconds}.${milliseconds}`;
+
+    const validBucketName = `curbucket${iso8601Format}`.toLowerCase();
+
     this.curBucket = new s3.Bucket(this, "CURBucket", {
-      bucketName: `curbucket${new Date().getTime()}`, // Set the explicit bucket name
+      bucketName: `curbucket${validBucketName}`, // Set the explicit bucket name
       autoDeleteObjects: true,
       encryption: s3.BucketEncryption.S3_MANAGED,
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
@@ -127,6 +144,7 @@ export class CostAnalyticsDeploymentStack extends cdk.Stack {
         s3Targets: [
           {
             path: `s3://${this.curBucket.bucketName}/curoutput`,
+
             exclusions: [
               "**.json",
               "**.yml",
