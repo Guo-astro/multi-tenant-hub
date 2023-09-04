@@ -290,6 +290,7 @@ export class CostAnalyticsDeploymentStack extends cdk.Stack {
           "tenant_usage_and_cost.calculate_daily_dynamodb_attribution_by_tenant",
         runtime: lambda.Runtime.PYTHON_3_9,
         role: queryLogInsightsExecutionRole,
+        timeout: cdk.Duration.seconds(30),
         environment: {
           ATHENA_S3_OUTPUT: this.curBucket.bucketName,
         },
@@ -304,6 +305,7 @@ export class CostAnalyticsDeploymentStack extends cdk.Stack {
         handler:
           "tenant_usage_and_cost.calculate_daily_lambda_attribution_by_tenant",
         runtime: lambda.Runtime.PYTHON_3_9,
+        timeout: cdk.Duration.seconds(30),
         role: queryLogInsightsExecutionRole,
         environment: {
           ATHENA_S3_OUTPUT: this.curBucket.bucketName,

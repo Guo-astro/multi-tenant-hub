@@ -750,23 +750,23 @@ export class SystemProvisiongPipeline extends cdk.Stack {
             stageName: "lambda-build",
             actions: [lambdaBuildAction],
           },
-          {
-            stageName: "cost-analytics-deployment",
-            actions: [
-              new CloudFormationCreateUpdateStackAction({
-                account: process.env.CDK_DEFAULT_ACCOUNT,
-                region: "us-east-1",
-                actionName: "CostAnalyticsPipeline_Deploy",
-                stackName:
-                  CostAnalyticsPipelineNameDict.costAnalyticsPipelineName,
+          // {
+          //   stageName: "cost-analytics-deployment",
+          //   actions: [
+          //     new CloudFormationCreateUpdateStackAction({
+          //       account: process.env.CDK_DEFAULT_ACCOUNT,
+          //       region: "us-east-1",
+          //       actionName: "CostAnalyticsPipeline_Deploy",
+          //       stackName:
+          //         CostAnalyticsPipelineNameDict.costAnalyticsPipelineName,
 
-                templatePath: cdkBuildOutput.atPath(
-                  `infrastructures/ci_cd/cdk.out/costAnalyticsDeploymentStack.template.json`
-                ),
-                adminPermissions: true,
-              }),
-            ],
-          },
+          //       templatePath: cdkBuildOutput.atPath(
+          //         `infrastructures/ci_cd/cdk.out/costAnalyticsDeploymentStack.template.json`
+          //       ),
+          //       adminPermissions: true,
+          //     }),
+          //   ],
+          // },
           {
             stageName: "infra-deployment",
             actions: [infraDeploymentAction],
