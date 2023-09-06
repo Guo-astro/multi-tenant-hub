@@ -1,14 +1,14 @@
 /* eslint-disable no-new */
 import * as cdk from "aws-cdk-lib";
-import { SecretValue } from "aws-cdk-lib";
 import { Construct } from "constructs";
 import * as iam from "aws-cdk-lib/aws-iam";
 import * as codepipelineActions from "aws-cdk-lib/aws-codepipeline-actions";
 import * as codebuild from "aws-cdk-lib/aws-codebuild";
+import * as codecommit from "aws-cdk-lib/aws-codecommit";
+
 import * as codepipeline from "aws-cdk-lib/aws-codepipeline";
 import { SystemProvisiongPipelineProps } from "@/shared/prop_extensions.types";
 import {
-  CostAnalyticsPipelineNameDict,
   SystemProviderCfnOutputs,
   SystemProviderInfraStackNameDict,
   SystemProviderProvisioningPipelineNameDict,
@@ -28,22 +28,21 @@ export class SystemProvisiongPipeline extends cdk.Stack {
     const stage = props.tags.environment;
     const lambdaECR = props.lambdaECR;
     const lambdaLayerECR = props.lambdaLayerECR;
-    const githubPATName = "dev/multi-tenant-saas";
-    const githubAccessToken = SecretValue.secretsManager(githubPATName);
-    const owner = "Guo-astro";
-    const repo = "multi-tenant-hub";
+    const repo = "test-infra";
     const branch = "main";
     const tenantId = "system";
     const sourceOutput = new codepipeline.Artifact();
     const lambdaLayerBuildOutput = new codepipeline.Artifact();
     const lambdaBuildOutput = new codepipeline.Artifact();
 
-    const sourceAction = new codepipelineActions.GitHubSourceAction({
-      actionName: "GitHub_Source",
-      owner,
-      repo,
+    const sourceAction = new codepipelineActions.CodeCommitSourceAction({
+      actionName: "CodeCommit_Source",
+      repository: codecommit.Repository.fromRepositoryName(
+        this,
+        "ImportedRepo",
+        repo
+      ),
       branch,
-      oauthToken: githubAccessToken,
       output: sourceOutput,
     });
     const cdkBuildOutput = new codepipeline.Artifact("pipeline-cdk-build");
